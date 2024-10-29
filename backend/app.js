@@ -1,5 +1,5 @@
 import express from 'express'
-import movies from "./routes/movies.js";
+import books from "./routes/books.js";
 import users from "./routes/users.js";
 import comments from "./routes/comments.js";
 import livrarias from "./routes/livrarias.js";
@@ -9,16 +9,16 @@ const port = 3000
 
 app.use(express.json());
 
-// Load the /movies routes
-app.use("/movies", movies);
+// Load the /books routes
+app.use("/books", books);
 
 // Load the /users routes
 app.use("/users", users);
 
-// Load the /users routes
+// Load the /comments routes
 app.use("/comments", comments);
 
-// Load the /users routes
+// Load the /livrarias routes
 app.use("/livrarias", livrarias);
 
 app.listen(port, () => {

@@ -12,10 +12,32 @@ router.get("/", async (req, res) => {
     res.send(results).status(200);
 });
 
-export default router;
-
 // return a book by id
 router.get("/:id", async (req, res) => {
-    let result = await db.collection('books').findOne({ _id: ObjectId(req.params.id) });
-    res.send(result).status(200);
+    const bookId = parseInt(req.params.id);
+
+    // Verifica se o bookId é um ObjectId válido
+    if (!ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error: 'ID inválid: ' + bookId });
+    }
+
+    try {
+        const book = await db.collection('books').findOne({ _id: bookId });
+        
+        if (book) {
+            res.status(200).json(book);
+        } else {
+            res.status(404).json({ error: 'Livro não encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar o livro.' });
+    }
 });
+
+
+
+
+
+
+
+export default router;

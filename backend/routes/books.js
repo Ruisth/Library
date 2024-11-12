@@ -13,3 +13,9 @@ router.get("/", async (req, res) => {
 });
 
 export default router;
+
+// return a book by id
+router.get("/:id", async (req, res) => {
+    let result = await db.collection('books').findOne({ _id: ObjectId(req.params.id) });
+    res.send(result).status(200);
+});

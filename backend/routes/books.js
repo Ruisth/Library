@@ -38,7 +38,11 @@ router.post("/", async (req, res) => {
         return res.status(400).json({ error: 'Dados inválidos' });
     }
 
+    const lastID = await db.collection('books').find().sort({ _id: -1 }).limit(1).toArray();
+    const id = lastID.length > 0 ? lastID[0]._id + 1 : 1;
+
     const newBook = {
+        _id: id,
         title,
         isbn,
         pageCount,
@@ -51,9 +55,11 @@ router.post("/", async (req, res) => {
         categories
     };
 
+    const result = await db.collection('books').insertOne(newBook);
+
     try {
-        const result = await db.collection('books').insertOne(newBook);
-        res.status(201).json(result.ops[0]);
+        
+        res.status(201).send({ message: 'Livro inserido com sucesso.', book: newBook });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao inserir o livro.' });
     }

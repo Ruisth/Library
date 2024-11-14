@@ -4,7 +4,7 @@ import { ObjectId } from "mongodb";
 
 const router = express.Router();
 
-// Verifica o ultimo utilizador - efeito de teste não considerar
+// Verifica o ultimo utilizador - Não considerar serve só para testes internos
 router.get("/check", async (req, res) => {
     
     try {
@@ -130,6 +130,58 @@ router.get("/:id", async (req, res) => {
         res.status(500).json({ error: 'Erro ao encontrar o utilizador ou os livros.' });
     }
 });
+
+//Eliminar Utilizador
+router.delete("/:id", async (req, res) => {
+    const userId = parseInt(req.params.id);
+
+    // Verifica se o userId é um número válido
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + userId });
+    }
+
+    try {
+        // Remove o utilizador pelo _id
+        const result = await db.collection('users').deleteOne({ _id: userId });
+
+        if (result.deletedCount > 0) {
+            res.status(200).json({ message: 'Utilizador removido com sucesso.' });
+        } else {
+            res.status(404).json({ error: 'Utilizador não encontrado.' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao remover o utilizador.' });
+    }
+});
+
+router.put("/:id", async (req, res) => {
+    const userId = parseInt(req.params.id);
+
+    // Verifica se o userId é um número válido
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + userId });
+    }
+
+    // Dados de actualização do body
+    const updateData = req.body;
+
+    try {
+        // Actualiza o utilizador pelo _id
+        const result = await db.collection('users').updateOne(
+            { _id: userId },
+            { $set: updateData }
+        );
+
+        if (result.matchedCount > 0) {
+            res.status(200).json({ message: 'Utilizador actualizado com sucesso.' });
+        } else {
+            res.status(404).json({ error: 'Utilizador não encontrado.' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao actualizar o utilizador.' });
+    }
+});
+
 
 
 

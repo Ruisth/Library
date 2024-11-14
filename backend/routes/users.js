@@ -4,7 +4,7 @@ import { ObjectId } from "mongodb";
 
 const router = express.Router();
 
-// Verificar o ultimo utilizador - efeitos de teste não considerar
+// Verifica o ultimo utilizador - efeito de teste não considerar
 router.get("/check", async (req, res) => {
     
     try {
@@ -60,7 +60,7 @@ router.get("/", async (req, res) => {
     }
 });
 
-// Adicionar utilizador
+// Adiciona utilizador e pode adicionar vários em simultaneo se for necessário
 router.post('/', async (req, res) => {
     try {
       const users = req.body;
@@ -93,26 +93,44 @@ router.post('/', async (req, res) => {
   });
 
 
-// Retorna utilizador por ID + Top 3
+// Retorna utilizador por ID + Top 3 Livros
 router.get("/:id", async (req, res) => {
     const userId = parseInt(req.params.id);
 
-    // Verifica se o userId é um ObjectId válido
-    if (!ObjectId.isValid(userId)) {
-        return res.status(400).json({ error: 'ID inválid: ' + userId });
+    // Verifica se o userId é um número válido
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + userId });
     }
 
     try {
+        // Encontra o utilizador pelo _id
         const user = await db.collection('users').findOne({ _id: userId });
-        
+
         if (user) {
-            res.status(200).json(user);
+            // Ordena as avaliações pelo score em ordem decrescente e pega os 3 primeiros
+            const topReviews = user.reviews
+                .sort((a, b) => b.score - a.score)
+                .slice(0, 3);
+
+            // Extrai os IDs dos livros dos top 3 reviews
+            const topBookIds = topReviews.map(review => review.book_id);
+
+            // Busca os detalhes dos livros na coleção "books"
+            const topBooks = await db.collection('books').find({ _id: { $in: topBookIds } }).toArray();
+
+            // Inclui os detalhes dos livros na resposta do utilizador
+            res.status(200).json({
+                ...user,
+                topBooks: topBooks,
+            });
         } else {
             res.status(404).json({ error: 'Utilizador não encontrado' });
         }
     } catch (error) {
-        res.status(500).json({ error: 'Erro a encontrar o utilizador.' });
+        res.status(500).json({ error: 'Erro ao encontrar o utilizador ou os livros.' });
     }
 });
+
+
 
 export default router;

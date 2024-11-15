@@ -92,7 +92,7 @@ router.get("/:id", async (req, res) => {
 
 
 // update a book by id
-router.put("/:id").async(async (req, res) => {
+router.put("/:id", async (req, res) => {
     const bookId = parseInt(req.params.id);
     const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = req.body;
 

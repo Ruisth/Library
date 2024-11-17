@@ -39,34 +39,41 @@ router.get("/", async (req, res) => {
 /* post books
 Adicionar 1 ou vários livros*/
 router.post("/", async (req, res) => {
-    const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = req.body;
-
-    if (!title || !isbn || !pageCount || !publishedDate || !thumbnailUrl || !shortDescription || !longDescription || !status || !authors || !categories) {
-        return res.status(400).json({ error: 'Dados inválidos' });
-    }
-
-    const lastID = await db.collection('books').find().sort({ _id: -1 }).limit(1).toArray();
-    const id = lastID.length > 0 ? lastID[0]._id + 1 : 1;
-
-    const newBook = {
-        _id: id,
-        title,
-        isbn,
-        pageCount,
-        publishedDate,
-        thumbnailUrl,
-        shortDescription,
-        longDescription,
-        status,
-        authors,
-        categories
-    };
-
-    const result = await db.collection('books').insertOne(newBook);
-
     try {
+        const books = req.body;
 
-        res.status(201).send({ message: 'Livro inserido com sucesso.', book: newBook });
+        const booksArray = Array.isArray(books) ? books : [books];
+
+        for (const book of booksArray) {
+            const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = book;
+
+            if (!title || !isbn || !pageCount || !publishedDate || !thumbnailUrl || !shortDescription || !longDescription || !status || !authors || !categories) {
+                return res.status(400).json({ error: 'Dados inválidos' });
+            }
+        }
+
+        // Obtém o maior ID atual na coleção (assumindo que o campo `_id` armazena o ID numérico)
+        const lastID = await db.collection('books').findOne({}, { sort: { _id: -1 } });
+        const nextId = lastID ? lastID._id + 1 : 1; // Começa em 1 se não houver livros na coleção
+
+        booksArray.forEach( book => {
+            _id = nextId;
+            nextId += 1;
+            title,
+            isbn,
+            pageCount,
+            publishedDate,
+            thumbnailUrl,
+            shortDescription,
+            longDescription,
+            status,
+            authors,
+            categories
+        });
+
+        const result = await db.collection('books').insertMany(booksArray);
+
+        res.status(201).send({ message: 'Livro inserido com sucesso.', insertedCount: result.insertedCount, insertedIds: result.insertedIds });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao inserir o livro.' });
     }

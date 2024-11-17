@@ -1,6 +1,6 @@
 # Library
 
-Trabalho desenvolvido no âmbito da Unidade Curricular de [ADAD] Armazenamento de Dados em Ambientes Distribuídos
+Trabalho desenvolvido no âmbito da Unidade Curricular de [ADAD] Armazenamento de Dados em Ambientes Distribuídos do Mestrado em Engenharia de Telecomunicações e Informática
 
 ### Membros do grupo
 | Nome            | Núm. Estudante | Username GitHub         |

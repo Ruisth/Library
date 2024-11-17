@@ -140,7 +140,12 @@ router.get("/:id", async (req, res) => {
             const topBooks = await db.collection('books').find({ _id: { $in: topBookIds } }).toArray();
 
             // Filtra para garantir que apenas os livros que existem na coleção sejam incluídos
-            const validTopBooks = topBooks.filter(book => topBookIds.includes(book._id));
+            const validTopBooks = topBooks.filter(book => topBookIds.includes(book._id)).map(book => {
+                
+                const review = topReviews.find(r => r.book_id === book._id);
+                return { ...book, score: review?.score || 0 };
+            });
+            const sortedTopBooks = validTopBooks.sort((a, b) => b.score - a.score);
 
             // Verifica se algum livro está ausente
             const missingBooks = topBookIds.filter(bookId => !validTopBooks.some(book => book._id === bookId));
@@ -153,7 +158,7 @@ router.get("/:id", async (req, res) => {
             // Inclui os detalhes dos livros na resposta do utilizador
             res.status(200).json({
                 ...user,
-                topBooks: validTopBooks,  // Inclui os livros mais bem avaliados (somente se existirem)
+                topBooks: sortedTopBooks,  // Inclui os livros mais bem avaliados (somente se existirem)
                 message: missingBooksMessage || undefined,  // Inclui mensagem se houver livros ausentes
             });
         } else {

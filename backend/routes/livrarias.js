@@ -213,7 +213,6 @@ router.get("/route", async (req, res) => {
 });
 
 
-
 /*Retornar número de livrarias perto de uma
 localização*/
 
@@ -245,8 +244,6 @@ router.get("/count_nearby", async (req, res) => {
         res.status(500).send({ erro: "Erro ao buscar livrarias próximas." });
     }
 });
-
-
 
 
 /*Verificar se um determinado user (Ponto) se encontra

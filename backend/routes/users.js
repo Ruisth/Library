@@ -68,6 +68,19 @@ router.post('/', async (req, res) => {
       // Verifica se `users` é um array; caso contrário, converte para um array
       const usersArray = Array.isArray(users) ? users : [users];
   
+      // Valida os dados de cada utilizador
+      const invalidUsers = usersArray.filter(user => {
+        // Verifica se o primeiro e último nome estão presentes
+        return !user.first_name || !user.last_name;
+      });
+  
+      if (invalidUsers.length > 0) {
+        return res.status(400).json({
+          message: 'Todos os utilizadores devem ter um primeiro e último nome.',
+          invalidUsers,
+        });
+      }
+  
       // Obtém o maior ID atual na coleção (assumindo que o campo `_id` armazena o ID numérico)
       const lastUser = await db.collection('users').findOne({}, { sort: { _id: -1 } });
       let nextId = lastUser ? lastUser._id + 1 : 1; // Começa em 1 se não houver utilizadores na coleção
@@ -82,16 +95,16 @@ router.post('/', async (req, res) => {
       const result = await db.collection('users').insertMany(usersArray);
   
       res.status(201).json({
-        message: 'Utilizador inserido com sucesso',
+        message: 'Utilizador(es) inserido(s) com sucesso',
         insertedCount: result.insertedCount,
         insertedIds: result.insertedIds,
       });
     } catch (error) {
-      console.error("Erro ao adicionar Utilizador:", error);
-      res.status(500).json({ message: 'Erro ao adicionar utilizador' });
+      console.error('Erro ao adicionar utilizador(es):', error);
+      res.status(500).json({ message: 'Erro ao adicionar utilizador(es)' });
     }
   });
-
+  
 
 // Retorna utilizador por ID + Top 3 Livros
 router.get("/:id", async (req, res) => {
@@ -107,21 +120,41 @@ router.get("/:id", async (req, res) => {
         const user = await db.collection('users').findOne({ _id: userId });
 
         if (user) {
-            // Ordena as avaliações pelo score em ordem decrescente e pega os 3 primeiros
-            const topReviews = user.reviews
-                .sort((a, b) => b.score - a.score)
-                .slice(0, 3);
+            // Verifica o número de reviews feitas pelo usuário
+            if (user.reviews.length < 3) {
+                return res.status(200).json({
+                    ...user,
+                    message: 'O utilizador fez menos de 3 avaliações, por isso, não é possível determinar os top 3 livros.'
+                });
+            }
 
-            // Extrai os IDs dos livros dos top 3 reviews
+            // Ordena todas as avaliações pelo score em ordem decrescente e pega as 3 melhores
+            const topReviews = user.reviews
+                .sort((a, b) => b.score - a.score)  // Ordena pela pontuação (score) em ordem decrescente
+                .slice(0, 3);  // Pega as 3 melhores avaliações
+
+            // Extrai os IDs dos livros das top 3 reviews
             const topBookIds = topReviews.map(review => review.book_id);
 
             // Busca os detalhes dos livros na coleção "books"
             const topBooks = await db.collection('books').find({ _id: { $in: topBookIds } }).toArray();
 
+            // Filtra para garantir que apenas os livros que existem na coleção sejam incluídos
+            const validTopBooks = topBooks.filter(book => topBookIds.includes(book._id));
+
+            // Verifica se algum livro está ausente
+            const missingBooks = topBookIds.filter(bookId => !validTopBooks.some(book => book._id === bookId));
+
+            // Se faltar algum livro, inclui uma mensagem na resposta
+            const missingBooksMessage = missingBooks.length > 0
+                ? `Os seguintes livros não foram encontrados: ${missingBooks.join(', ')}`
+                : '';
+
             // Inclui os detalhes dos livros na resposta do utilizador
             res.status(200).json({
                 ...user,
-                topBooks: topBooks,
+                topBooks: validTopBooks,  // Inclui os livros mais bem avaliados (somente se existirem)
+                message: missingBooksMessage || undefined,  // Inclui mensagem se houver livros ausentes
             });
         } else {
             res.status(404).json({ error: 'Utilizador não encontrado' });
@@ -130,6 +163,10 @@ router.get("/:id", async (req, res) => {
         res.status(500).json({ error: 'Erro ao encontrar o utilizador ou os livros.' });
     }
 });
+
+
+
+
 
 //Eliminar Utilizador
 router.delete("/:id", async (req, res) => {

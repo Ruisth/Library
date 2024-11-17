@@ -12,7 +12,7 @@ router.get("/", async (req, res) => {
 });
 
 
-/*Adicionar livros da lista (books.json) a cada livraria.*/
+/*Adiciona livros da lista (books.json) a cada livraria.*/
 router.post("/", async (req, res) => {
     try {
         const { livraria_id, books } = req.body;

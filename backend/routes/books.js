@@ -48,17 +48,19 @@ router.post("/", async (req, res) => {
             const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = book;
 
             if (!title || !isbn || !pageCount || !publishedDate || !thumbnailUrl || !shortDescription || !longDescription || !status || !authors || !categories) {
-                return res.status(400).json({ error: 'Dados inválidos' });
+                return res.status(400).json({ error: 'Dados inválidos em um ou mais livros' });
             }
         }
 
         // Obtém o maior ID atual na coleção (assumindo que o campo `_id` armazena o ID numérico)
-        const lastID = await db.collection('books').findOne({}, { sort: { _id: -1 } });
-        const nextId = lastID ? lastID._id + 1 : 1; // Começa em 1 se não houver livros na coleção
+        const lastID = await db.collection('books').find().sort({ _id: -1 }).limit(1).toArray();
+        let nextId = lastID.length > 0 ? lastID[0]._id + 1 : 1; // Começa em 1 se não houver livros na coleção
 
-        booksArray.forEach( book => {
-            _id = nextId;
-            nextId += 1;
+        const newBooks = booksArray.map(book => {
+            const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = book;
+
+            return {
+            _id: nextId++,
             title,
             isbn,
             pageCount,
@@ -69,11 +71,15 @@ router.post("/", async (req, res) => {
             status,
             authors,
             categories
+            };
         });
 
-        const result = await db.collection('books').insertMany(booksArray);
+        const result = await db.collection('books').insertMany(newBooks);
 
-        res.status(201).send({ message: 'Livro inserido com sucesso.', insertedCount: result.insertedCount, insertedIds: result.insertedIds });
+        res.status(201).send({ 
+            message: 'Livro/os inserido com sucesso.', 
+            insertedCount: result.insertedCount, 
+            insertedIds: result.insertedIds });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao inserir o livro.' });
     }
@@ -87,15 +93,70 @@ average score e a lista de todos os comentários*/
 router.get("/id/:id", async (req, res) => {
     const bookId = parseInt(req.params.id);
 
-    if (!ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error: 'ID inválid: ' + bookId });
+    if (isNaN(bookId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + bookId });
     }
 
     try {
-        const book = await db.collection('books').findOne({ _id: bookId });
+        // Agregação para retornar o livro, calcular o average score e incluir os comentários
+        const results = await db.collection('books').aggregate([
+            { $match: { _id: bookId } }, // Filtra o livro pelo ID
+            {
+                $lookup: {
+                    from: 'users', // Nome da coleção de usuários
+                    localField: '_id', // Campo na coleção books que corresponde ao ID
+                    foreignField: 'reviews.book_id', // Campo na coleção users que contém os IDs dos livros
+                    as: 'user_reviews' // Nome do campo resultante
+                }
+            },
+            {
+                $lookup: {
+                    from: 'comments', // Nome da coleção de comentários
+                    localField: '_id', // Campo na coleção books que corresponde ao ID
+                    foreignField: 'book_id', // Campo na coleção comments que contém os IDs dos livros
+                    as: 'book_comments' // Nome do campo resultante
+                }
+            },
+            { $unwind: { path: '$user_reviews', preserveNullAndEmptyArrays: true } }, // Expande o array users com reviews
+            { $unwind: { path: '$user_reviews.reviews', preserveNullAndEmptyArrays: true } }, // Expande o array de reviews dos users com reviews
+            { $match: { $expr: { $eq: ['$user_reviews.reviews.book_id', '$_id'] } } }, // Filtra as reviews relevantes
+            {
+                $group: {
+                    _id: '$_id', // Agrupa pelo ID do livro
+                    title: { $first: '$title' },
+                    isbn: { $first: '$isbn' },
+                    pageCount: { $first: '$pageCount' },
+                    publishedDate: { $first: '$publishedDate' },
+                    thumbnailUrl: { $first: '$thumbnailUrl' },
+                    shortDescription: { $first: '$shortDescription' },
+                    longDescription: { $first: '$longDescription' },
+                    status: { $first: '$status' },
+                    authors: { $first: '$authors' },
+                    categories: { $first: '$categories' },
+                    averageScore: { $avg: '$user_reviews.reviews.score' }, // Calcula a média dos scores
+                    comments: { $addToSet: '$book_comments' } // Agrupa os comentários
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    isbn: 1,
+                    pageCount: 1,
+                    publishedDate: 1,
+                    thumbnailUrl: 1,
+                    shortDescription: 1,
+                    longDescription: 1,
+                    status: 1,
+                    authors: 1,
+                    categories: 1,
+                    averageScore: 1, // Inclui a média calculada
+                    comments: { $ifNull: ['$comments', []] } // Garante que comentários vazios sejam tratados
+                }
+            }
+        ]).toArray();
 
-        if (book) {
-            res.status(200).json(book);
+        if (results.length > 0) {
+            res.status(200).json(results[0]); // Retorna o primeiro livro encontrado
         } else {
             res.status(404).json({ error: 'Livro não encontrado' });
         }

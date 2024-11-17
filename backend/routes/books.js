@@ -105,45 +105,6 @@ router.get("/id/:id", async (req, res) => {
 });
 
 
-// update a book by id
-router.put("/:id", async (req, res) => {
-    const bookId = parseInt(req.params.id);
-    const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = req.body;
-
-    if (!ObjectId.isValid(bookId)) {
-        return res.status(400).json({ error: 'ID inválido: ' + bookId });
-    }
-
-    if (!title || !isbn || !pageCount || !publishedDate || !thumbnailUrl || !shortDescription || !longDescription || !status || !authors || !categories) {
-        return res.status(400).json({ error: 'Dados inválidos ' });
-    }
-
-    const book = await db.collection('books').findOne({ _id: bookId });
-
-    if (book) {
-        const updatedBook = {
-            _id: bookId,
-            title,
-            isbn,
-            pageCount,
-            publishedDate,
-            thumbnailUrl,
-            shortDescription,
-            longDescription,
-            status,
-            authors,
-            categories
-        };
-
-        await db.collection('books').updateOne({ _id: bookId }, { $set: updatedBook });
-
-        res.status(200).json({ message: 'Livro atualizado com sucesso.', book: updatedBook });
-    } else {
-        res.status(404).json({ error: 'Livro não encontrado' });
-    }
-});
-
-
 /* delete a book by id
 Remover livro pelo _id*/
 router.delete("/:id", async (req, res) => {

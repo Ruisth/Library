@@ -44,9 +44,9 @@ router.post("/", async (req, res) => {
         const booksArray = Array.isArray(books) ? books : [books];
 
         for (const book of booksArray) {
-            const {_id, title} = book;
+            const {_id } = book;
         
-            if( !_id || !title){
+            if( !_id ){
                 return res.status(400).json({ error: 'Dados inválidos em um ou mais livros' });
             }
         }

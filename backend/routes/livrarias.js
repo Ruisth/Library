@@ -41,36 +41,63 @@ router.post("/", async (req, res) => {
     try {
         const { livraria_id, books } = req.body;
 
-        // Verifica se os dados são válidos
+        const booksArray = Array.isArray(books) ? books : [books];
+
+        for (const book of booksArray) {
+            const {_id, title} = book;
+        
+            if( !_id || !title){
+                return res.status(400).json({ error: 'Dados inválidos em um ou mais livros' });
+            }
+        }
+
+        // Validação inicial
         if (!livraria_id || !Array.isArray(books)) {
-            return res.status(400).json({ error: "Dados inválidos: 'livraria_id' e 'books' são obrigatórios e 'books' deve ser uma lista." });
+            return res.status(400).json({ 
+                error: "Dados inválidos: 'livraria_id' e 'books' são obrigatórios, e 'books' deve ser uma lista."
+            });
         }
 
-        // Busca os livros que existem na coleção 'books'
-        const existingBooks = await db.collection("books").find({ _id: { $in: books } }).toArray();
+        // Verifica se a livraria existe
+        const livraria = await db.collection("livrarias").findOne({ _id: livraria_id });
 
-        // Extraia os IDs dos livros existentes
-        const validBookIds = existingBooks.map(book => book._id);
-
-        // Se nenhum livro válido for encontrado, retorne erro
-        if (validBookIds.length === 0) {
-            return res.status(400).json({ error: "Nenhum dos livros fornecidos existe na coleção 'books'." });
+        if (!livraria) {
+            return res.status(404).json({ error: `Livraria com ID ${livraria_id} não encontrada.` });
         }
 
-        // Atualiza ou cria a entrada para a livraria
+        // Verifica se os livros existem
+        const validBooks = await db.collection("books").find({ _id: { $in: booksArray.map(book => book._id) } }).toArray();
+
+        if (validBooks.length !== booksArray.length) {
+            // guarda os livros que não foram encontrados
+            const notFoundBooks = booksArray.filter(book => !validBooks.find(validBook => validBook._id === book._id));
+            // retornam mensagem com o ou os livros não encontrados
+            return res.status(404).json({ error: `Livros não encontrados: ${notFoundBooks.map(book => book._id).join(", ")}` });
+        }
+
+        // Formate os livros para inserir no campo `books` da livraria
+        const formattedBooks = validBooks.map(book => ({
+            _id: book._id,
+            title: book.title
+        }));
+
+        // Atualiza a livraria adicionando os livros válidos
         const result = await db.collection("livrarias").updateOne(
-            { _id: livraria_id }, // Filtro para encontrar a livraria
-            { $set: { _id: livraria_id }, $addToSet: { books: { $each: books } } }, // Adiciona os livros à lista
-            { upsert: true } // Cria a entrada se não existir
+            { _id: livraria_id },
+            {
+                $set: { _id: livraria_id }, // Garante que o ID da livraria seja definido
+                $addToSet: { books: { $each: formattedBooks } } // Adiciona livros únicos
+            },
+            { upsert: true }
         );
 
-        // Responde com o resultado
+        // Resposta com os resultados
         res.status(200).json({
-            message: `Livros adicionados à livraria ${livraria_id}.`,
+            message: `Livros adicionados com sucesso à livraria ${livraria_id}.`,
             matchedCount: result.matchedCount,
             modifiedCount: result.modifiedCount,
             upsertedId: result.upsertedId,
-            addedBooks: validBookIds
+            addedBooks: formattedBooks
         });
     } catch (error) {
         res.status(500).json({ error: error.message });

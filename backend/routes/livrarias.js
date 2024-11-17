@@ -171,72 +171,74 @@ router.get("/near/:long/:lat", async (req, res) => {
     }
 });
 
-/*Lista de livrarias perto do caminho de uma rota*/
 
+// Lista de livrarias perto de uma rota
 router.post("/route", async (req, res) => {
-    const { route, maxDistance = 1000 } = req.body; // rota é uma lista de pontos {lat, long}
+    const { coordenadas } = req.body;
 
-    if (!Array.isArray(route) || route.length === 0) {
-        return res.status(400).json({ error: 'Rota inválida' });
+    // Verificar se há dados suficientes para construir um polígono para fazer a área de procura
+    if (!coordenadas || coordenadas.length < 3) {
+        return res.status(400).json({ erro: "É necessário fornecer pelo menos 3 pontos para definir um polígono." });
     }
 
-    // Busca livrarias próximas a cada ponto da rota
-    let livrarias = [];
-    for (const point of route) {
-        const { lat, long } = point;
+    try {
+        const polygon = {
+            type: "Polygon",
+            coordinates: [coordenadas]
+        };
 
-        const nearbyLivrarias = await db.collection('livrarias').find({
-            location: {
-                $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [long, lat]
-                    },
-                    $maxDistance: maxDistance
+        const livrarias = await db.collection("livrarias").find({
+            "geometry.type": "Point",
+            geometry: {
+                $geoWithin: {
+                    $geometry: polygon
                 }
             }
         }).toArray();
 
-        livrarias.push(...nearbyLivrarias);
+        if (livrarias.length > 0) {
+            res.status(200).json({
+                mensagem: "Foram encontradas as seguintes livrarias dentro da rota:",
+                livrarias: livrarias
+            });
+        } else {
+            res.status(200).json({
+                mensagem: "Não foram encontradas livrarias dentro da rota."
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ erro: "Ocorreu um erro ao tentar buscar as livrarias dentro do polígono." });
     }
-
-    // Remove duplicatas (caso uma livraria esteja perto de múltiplos pontos)
-    const uniqueLivrarias = Array.from(new Map(livrarias.map(liv => [liv._id.toString(), liv])).values());
-
-    res.send(uniqueLivrarias).status(200);
 });
+
 
 
 /*Retornar número de livrarias perto de uma
 localização*/
 
-router.get("/count/:long/:lat", async (req, res) => {
-    const long = parseFloat(req.params.long);
-    const lat = parseFloat(req.params.lat);
-    const maxDistance = 1000; // Defina a distância máxima em metros (ajustável)
-
-    if (isNaN(long) || isNaN(lat)) {
-        return res.status(400).json({ error: "Coordenadas inválidas" });
-    }
+router.get("/count-near", async (req, res) => {
+    const { lat, lon, radius } = req.query;
 
     try {
-        // Conta as livrarias próximas
-        const count = await db.collection('livrarias').countDocuments({
-            location: {
+        const livrarias = await db.collection("livrarias").find({
+            geometry: {
                 $near: {
-                    $geometry: {
-                        type: "Point",
-                        coordinates: [long, lat]
-                    },
-                    $maxDistance: maxDistance
+                    $geometry: { type: "Point", coordinates: [parseFloat(lon), parseFloat(lat)] },
+                    $maxDistance: parseInt(radius)
                 }
             }
-        });
+        }).toArray();
 
-        res.status(200).json({ count });
+        // Resumidamente é pegar na R2.3 e a contar o número de livrarias
+        const count = livrarias.length;
+
+        res.status(200).send({
+            count
+        });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Erro ao buscar livrarias" });
+        res.status(500).send({ erro: "Erro ao buscar livrarias próximas." });
     }
 });
 
@@ -247,44 +249,44 @@ router.get("/count/:long/:lat", async (req, res) => {
 dentro da feira do livro.. Coordenadas para testar: [-
 9.155644342145884,38.72749043040882]*/
 
-router.get("/check-user", async (req, res) => {
-    const userLocation = [-9.155644342145884, 38.72749043040882]; // Coordenadas do utilizador
+// ROTA - Verificar se um determinado user (Ponto) se encontra dentro da feira do livro
+router.get("/verify-fair", async (req, res) => {
+    const { lat, lon } = req.query;
 
-    // Polígono da Feira do Livro (substituir pelas coordenadas corretas)
-    const feiraDoLivroPolygon = {
-        type: "Polygon",
-        coordinates: [
-            [
-                [-9.157, 38.729], // Coordenada 1
-                [-9.156, 38.729], // Coordenada 2
-                [-9.156, 38.727], // Coordenada 3
-                [-9.157, 38.727], // Coordenada 4
-                [-9.157, 38.729]  // Fecha o polígono
-            ]
-        ]
-    };
+    if (!lat || !lon) {
+        return res.status(400).json({ error: "É necessário a latitude e a longitude do ponto." });
+    }
 
     try {
-        // Verifica se o ponto está dentro do polígono
-        const isInside = await db.collection('users').findOne({
-            location: {
-                $geoWithin: {
-                    $geometry: feiraDoLivroPolygon
+        const point = [parseFloat(lon), parseFloat(lat)];
+
+        // Buscar a feira do livro na coleção 'livrarias'
+        const feira = await db.collection("livrarias").findOne({
+            name: "Feira do Livro",
+            geometry: {
+                $geoIntersects: {
+                    $geometry: {
+                        type: "Point",
+                        coordinates: point
+                    }
                 }
             }
         });
 
-        if (isInside) {
-            res.status(200).json({ status: true, message: "O utilizador está dentro da Feira do Livro" });
+        if (feira) {
+            res.status(200).send({
+                message: "O ponto está dentro da área da Feira do Livro."
+            });
         } else {
-            res.status(200).json({ status: false, message: "O utilizador está fora da Feira do Livro" });
+            res.status(200).send({
+                message: "O ponto está fora da área da Feira do Livro."
+            });
         }
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Erro ao verificar a localização do utilizador" });
+        res.status(500).json({ error: "Ocorreu um erro ao verificar se o ponto se encontra dentro da feira do livro." });
     }
 });
-
 
 
 

@@ -177,8 +177,8 @@ router.get("/route", async (req, res) => {
     const { coordenadas } = req.body;
 
     // Verificar se há dados suficientes para construir um polígono para fazer a área de procura
-    if (!coordenadas || coordenadas.length < 3) {
-        return res.status(400).json({ erro: "É necessário fornecer pelo menos 3 pontos para definir um polígono." });
+    if (!coordenadas || coordenadas.length < 4) {
+        return res.status(400).json({ erro: "É necessário fornecer pelo menos 4 pontos para definir um polígono." });
     }
 
     try {

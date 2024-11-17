@@ -7,31 +7,37 @@ const router = express.Router();
 /* return first 50 documents from movies collection
 Lista de livros com paginação.*/
 router.get("/", async (req, res) => {
-    let results = await db.collection('books').find({})
-        .limit(50)
-        .toArray();
-    res.send(results).status(200);
+    try {
+        // Parâmetros de paginação
+        let page = parseInt(req.query.page) || 1; // Página atual, padrão é 1
+        let limit = 20; // Máximo de livros por página
+        let skip = (page - 1) * limit; // Quantidade de documentos a saltar
+
+        // Procura os livros com paginação
+        let books = await db.collection('books')
+            .find({})
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+
+        // Conta o total de livros na coleção
+        let totalBooks = await db.collection('books').countDocuments();
+
+        // Envia os resultados com informações adicionais de paginação
+        res.status(200).send({
+            books,
+            currentPage: page,
+            totalPages: Math.ceil(totalBooks / limit),
+            totalBooks,
+        });
+    } catch (error) {
+        console.error("Erro ao procurar livros:", error);
+        res.status(500).send({ message: "Erro ao procurar livros" });
+    }
 });
 
 /* post books
-Adicionar 1 ou vários livros
-_id: 1
-title: "Unlocking Android"
-isbn: "1933988673"
-pageCount: 416
-publishedDate: 2009-04-01T07:00:00.000+00:00
-thumbnailUrl: "https://s3.amazonaws.com/AKIAJC5RLADLUMVRPFDQ.book-thumb-images/ableso…"
-shortDescription: "Unlocking Android: A Developer's Guide provides concise, hands-on inst…"
-longDescription: "Android is an open source mobile phone platform based on the Linux ope…"
-status: "PUBLISH"
-authors Array (3)
-0 "W. Frank Ableson"
-1 "Charlie Collins"
-2 "Robi Sen"
-categories Array (2)
-0 "Open Source"
-1 "Mobile"
-*/
+Adicionar 1 ou vários livros*/
 router.post("/", async (req, res) => {
     const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = req.body;
 
@@ -59,18 +65,19 @@ router.post("/", async (req, res) => {
     const result = await db.collection('books').insertOne(newBook);
 
     try {
-        
+
         res.status(201).send({ message: 'Livro inserido com sucesso.', book: newBook });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao inserir o livro.' });
     }
 });
 
+
 /* return a book by id
 Pesquisar livro pelo _id
 Resposta deverá incluir toda a informação do livro, o
 average score e a lista de todos os comentários*/
-router.get("/:id", async (req, res) => {
+router.get("/id/:id", async (req, res) => {
     const bookId = parseInt(req.params.id);
 
     if (!ObjectId.isValid(bookId)) {
@@ -79,7 +86,7 @@ router.get("/:id", async (req, res) => {
 
     try {
         const book = await db.collection('books').findOne({ _id: bookId });
-        
+
         if (book) {
             res.status(200).json(book);
         } else {
@@ -144,7 +151,44 @@ router.delete("/:id", async (req, res) => {
     if (book) {
         await db.collection('books').deleteOne({ _id: bookId });
 
-        res.status(200).json({ message: 'Livro deletado com sucesso.' });
+        res.status(200).json({ message: 'Livro removido com sucesso.' });
+    } else {
+        res.status(404).json({ error: 'Livro não encontrado' });
+    }
+});
+
+
+/* update a book by id
+só atualiza os campos preenchidos*/
+router.put("/:id", async (req, res) => {
+    const bookId = parseInt(req.params.id);
+
+    if (!ObjectId.isValid(bookId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + bookId });
+    }
+
+    const book = await db.collection('books').findOne({ _id: bookId });
+
+    if (book) {
+
+        const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = req.body;
+
+        const newBook = {
+            title: title || book.title,
+            isbn: isbn || book.isbn,
+            pageCount: pageCount || book.pageCount,
+            publishedDate: publishedDate || book.publishedDate,
+            thumbnailUrl: thumbnailUrl || book.thumbnailUrl,
+            shortDescription: shortDescription || book.shortDescription,
+            longDescription: longDescription || book.longDescription,
+            status: status || book.status,
+            authors: authors || book.authors,
+            categories: categories || book.categories
+        };
+
+        await db.collection('books').updateOne({ _id: bookId }, { $set: newBook });
+
+        res.status(200).json({ message: 'Livro atualizado com sucesso.' });
     } else {
         res.status(404).json({ error: 'Livro não encontrado' });
     }
@@ -162,10 +206,46 @@ router.get("/top/:limit", async (req, res) => {
         return res.status(400).json({ error: 'Limite inválido: ' + limit });
     }
 
-    const results = await db.collection('books').find({}).sort({ averageScore: -1 }).limit(limit).toArray();
+    try {
+        const results = await db.collection('books').aggregate([
+            {
+                $lookup: {
+                    from: 'users', // Nome da coleção users
+                    localField: '_id', // Campo na coleção books que corresponde ao ID
+                    foreignField: 'reviews.book_id', // Campo na coleção users que contém os IDs de livros
+                    as: 'user_reviews' // Nome do campo resultante
+                }
+            },
+            { $unwind: '$user_reviews' }, // Expande o array de users com reviews
+            { $unwind: '$user_reviews.reviews' }, // Expande o array de reviews dos users com reviews
+            { $match: { $expr: { $eq: ['$user_reviews.reviews.book_id', '$_id'] } } }, // Filtra as avaliações relevantes
+            {
+                $group: {
+                    _id: '$_id',
+                    title: { $first: '$title' },
+                    isbn: { $first: '$isbn' },
+                    pageCount: { $first: '$pageCount' },
+                    publishedDate: { $first: '$publishedDate' },
+                    thumbnailUrl: { $first: '$thumbnailUrl' },
+                    shortDescription: { $first: '$shortDescription' },
+                    longDescription: { $first: '$longDescription' },
+                    status: { $first: '$status' },
+                    authors: { $first: '$authors' },
+                    categories: { $first: '$categories' },
+                    averageScore: { $avg: '$user_reviews.reviews.score' }, // Calcula a média dos scores
+                    totalReviews: { $sum: 1 } // Conta o número total de avaliações
+                }
+            },
+            { $sort: { averageScore: -1 } }, // Ordena pela média dos scores em ordem decrescente
+            { $limit: limit } // Limita o número de resultados
+        ]).toArray();
 
-    res.status(200).json(results);
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
 
 /* get books by total reviews
 Lista de livros ordenado pelo número total de reviews
@@ -173,36 +253,134 @@ Lista de livros ordenado pelo número total de reviews
 router.get("/ratings/:order", async (req, res) => {
     const { order } = req.params;
 
+    // Verifica se a ordem é válida
     if (order !== 'asc' && order !== 'desc') {
-        return res.status(400).json({ error: 'Ordem inválida: ' + order });
+        return res.status(400).json({ error: 'Ordem inválida: ' + order + '  |  Opções: asc / desc' });
     }
 
-    const results = await db.collection('books').find({}).sort({ totalReviews: order === 'asc' ? 1 : -1 }).toArray();
+    try {
+        const results = await db.collection('books').aggregate([
+            {
+                $lookup: {
+                    from: 'users', // Nome da coleção users
+                    localField: '_id', // Campo na coleção books que corresponde ao ID
+                    foreignField: 'reviews.book_id', // Campo na coleção users que contém os IDs de livros
+                    as: 'user_reviews' // Nome do campo resultante
+                }
+            },
+            { $unwind: '$user_reviews' }, // Expande o array de users com reviews
+            { $unwind: '$user_reviews.reviews' }, // Expande o array de reviews dos users com reviews
+            { $match: { $expr: { $eq: ['$user_reviews.reviews.book_id', '$_id'] } } }, // Filtra as avaliações relevantes
+            {
+                $group: {
+                    _id: '$_id',
+                    title: { $first: '$title' },
+                    isbn: { $first: '$isbn' },
+                    pageCount: { $first: '$pageCount' },
+                    publishedDate: { $first: '$publishedDate' },
+                    thumbnailUrl: { $first: '$thumbnailUrl' },
+                    shortDescription: { $first: '$shortDescription' },
+                    longDescription: { $first: '$longDescription' },
+                    status: { $first: '$status' },
+                    authors: { $first: '$authors' },
+                    categories: { $first: '$categories' },
+                    totalReviews: { $sum: 1 } // Conta o número total de reviews
+                }
+            },
+            { $sort: { totalReviews: order === 'asc' ? 1 : -1 } } // Ordena pela quantidade de reviews
+        ]).toArray();
 
-    res.status(200).json(results);
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
+
 
 /* get books by stars
 Lista de livros com mais 5 estrelas. Mostrar toda a
 informação do livro e o número de reviews igual a 5*/
 router.get("/star", async (req, res) => {
-    const results = await db.collection('books').find({ 'comments.star': 5 }).toArray();
+    const results = await db.collection('books').aggregate([
+        {
+            $lookup: {
+                from: 'users', // Nome da coleção users
+                localField: '_id', // Campo na coleção books que corresponde ao ID
+                foreignField: 'reviews.book_id', // Campo na coleção users que contém os IDs de livros
+                as: 'user_reviews' // Nome do campo resultante
+            }
+        },
+        { $unwind: '$user_reviews' }, // Expande o array de users com reviews
+        { $unwind: '$user_reviews.reviews' }, // Expande o array de reviews dos users com reviews
+        {
+            $match: {
+                $expr: {
+                    $and: [
+                        { $eq: ['$user_reviews.reviews.book_id', '$_id'] }, // Garante que o ID do livro corresponde
+                        { $eq: ['$user_reviews.reviews.score', 5] } // Filtra avaliações com 5 estrelas
+                    ]
+                }
+            }
+        },
+        {
+            $group: {
+                _id: '$_id',
+                title: { $first: '$title' },
+                isbn: { $first: '$isbn' },
+                pageCount: { $first: '$pageCount' },
+                publishedDate: { $first: '$publishedDate' },
+                thumbnailUrl: { $first: '$thumbnailUrl' },
+                shortDescription: { $first: '$shortDescription' },
+                longDescription: { $first: '$longDescription' },
+                status: { $first: '$status' },
+                authors: { $first: '$authors' },
+                categories: { $first: '$categories' },
+                fiveStarReviews: { $sum: 1 } // Conta o número de reviews com 5 estrelas
+            }
+        },
+        { $match: { fiveStarReviews: { $gt: 0 } } } // Filtra livros com pelo menos uma avaliação de 5 estrelas
+    ]).toArray();
 
     res.status(200).json(results);
 });
 
+
 /* get books by year
 Lista de livros avaliados no ano {year}*/
-router.get("/:year", async (req, res) => {
-    const year = parseInt(req.params.year);
+router.get("/year/:year", async (req, res) => {
+    try {
+        const year = parseInt(req.params.year);
 
-    if (year < 1) {
-        return res.status(400).json({ error: 'Ano inválido: ' + year });
+        if (isNaN(year) || year < 1) {
+            return res.status(400).json({ error: `Ano inválido: ${req.params.year}` });
+        }
+
+        // Encontra os IDs dos livros com reviews na coleção 'users'
+        const reviewedBookIds = await db.collection('users').aggregate([
+            { $unwind: '$reviews' }, // Expande o array de reviews
+            { $group: { _id: '$reviews.book_id' } } // Agrupa pelos IDs dos livros
+        ]).toArray();
+
+        // Extrai os IDs dos livros com reviews
+        const bookIds = reviewedBookIds.map(review => review._id);
+
+        if (bookIds.length === 0) {
+            return res.status(404).json({ error: `Nenhum livro com reviews encontrado.` });
+        }
+
+        // Busca os livros na coleção 'books' que possuem os IDs e foram publicados no ano especificado
+        const books = await db.collection('books').aggregate([
+            { $match: { _id: { $in: bookIds }, $expr: { $eq: [year.toString(), { $substr: ["$publishedDate", 0, 4] }] } } }, // Filtra os livros com IDs e ano correspondentes
+        ]).toArray();
+
+        if (books.length === 0) {
+            return res.status(404).json({ error: `Nenhum livro encontrado para o ano ${year}.` });
+        }
+
+        res.status(200).json(books);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-
-    const results = await db.collection('books').find({ year }).toArray();
-
-    res.status(200).json(results);
 });
 
 
@@ -210,9 +388,52 @@ router.get("/:year", async (req, res) => {
 Lista de livros que têm comentários. Ordenado pelo
 número total de comentários*/
 router.get("/comments", async (req, res) => {
-    const results = await db.collection('books').find({ totalComments: { $gt: 0 } }).sort({ totalComments: -1 }).toArray();
+    try {
+        const results = await db.collection('books').aggregate([
+            {
+                $lookup: {
+                    from: 'users', // Coleção users
+                    localField: '_id', // Campo na coleção books que infica o ID do livro
+                    foreignField: 'reviews.book_id', // Campo na coleção users que indica o ID do livro
+                    as: 'user_reviews' // Nome do resultado
+                }
+            },
+            {
+                $unwind: {
+                    path: '$user_reviews', // Expande o array users com reviews
+                    preserveNullAndEmptyArrays: false // Exclui livros sem comentários
+                }
+            },
+            {
+                $unwind: {
+                    path: '$user_reviews.reviews', // Expande o array de reviews dos users com reviews
+                    preserveNullAndEmptyArrays: false // Exclui dados sem comentários
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    title: { $first: '$title' },
+                    isbn: { $first: '$isbn' },
+                    pageCount: { $first: '$pageCount' },
+                    publishedDate: { $first: '$publishedDate' },
+                    thumbnailUrl: { $first: '$thumbnailUrl' },
+                    shortDescription: { $first: '$shortDescription' },
+                    longDescription: { $first: '$longDescription' },
+                    status: { $first: '$status' },
+                    authors: { $first: '$authors' },
+                    categories: { $first: '$categories' },
+                    totalComments: { $sum: 1 } // Conta o total de comentários para cada livro
+                }
+            },
+            { $match: { totalComments: { $gt: 0 } } }, // Mostra apenas livros com comentários
+            { $sort: { totalComments: -1 } } // Ordena por número total de comentários, decrescente
+        ]).toArray();
 
-    res.status(200).json(results);
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 
@@ -221,39 +442,60 @@ router.get("/comments", async (req, res) => {
 Resultado deverá apresentar apenas o “job” e número
 de reviews*/
 router.get("/job", async (req, res) => {
-    const results = await db.collection('books').aggregate([
-        { $unwind: '$comments' },
-        { $group: { _id: '$comments.job', totalReviews: { $sum: 1 } } }
-    ]).toArray();
+    try {
+        const results = await db.collection('users').aggregate([
+            { $unwind: '$reviews' }, // Expande o array de reviews
+            {
+                $group: {
+                    _id: '$job', // Agrupa pelo campo "job"
+                    totalReviews: { $sum: 1 } // Soma o número de reviews
+                }
+            },
+            { $sort: { totalReviews: -1 } } // Ordena pelo número total de reviews, decrescente
+        ]).toArray();
 
-    res.status(200).json(results);
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 
 /*Lista de livros filtrada por preço, categoria e/ou autor.
 Grupos devem definir endpoint e parâmetros*/
 router.get("/filter", async (req, res) => {
-    const { price, category, author } = req.query;
+    try {
+        const { price, category, author } = req.query;
 
-    let query = {};
+        // Inicializa a query vazia
+        const query = {};
 
-    if (price) {
-        query.price = price;
+        // Adiciona filtros dinamicamente com validação
+        if (price) {
+            const parsedPrice = parseFloat(price);
+            if (isNaN(parsedPrice)) {
+                return res.status(400).json({ error: "O preço deve ser um número válido." });
+            }
+            query.price = parsedPrice;
+        }
+
+        if (category) {
+            query.categories = { $regex: new RegExp(category, 'i') }; // Pesquisa case insensitive
+        }
+
+        if (author) {
+            query.authors = { $regex: new RegExp(author, 'i') }; // Pesquisa case insensitive
+        }
+
+        // Consulta os livros na coleção com os filtros aplicados
+        const results = await db.collection('books').find(query).toArray();
+
+        // Retorna os resultados
+        res.status(200).json(results);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-
-    if (category) {
-        query.category = category;
-    }
-
-    if (author) {
-        query.author = author;
-    }
-
-    const results = await db.collection('books').find(query).toArray();
-
-    res.status(200).json(results);
 });
-
 
 
 export default router;

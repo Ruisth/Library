@@ -140,10 +140,11 @@ router.get("/:id", async (req, res) => {
             const topBooks = await db.collection('books').find({ _id: { $in: topBookIds } }).toArray();
 
             // Filtra para garantir que apenas os livros que existem na coleção sejam incluídos
-            const validTopBooks = topBooks.filter(book => topBookIds.includes(book._id)).map(book => {
-                
-                const review = topReviews.find(r => r.book_id === book._id);
-                return { ...book, score: review?.score || 0 };
+            const validTopBooks = topBooks
+                .filter(book => topBookIds.includes(book._id))
+                .map(book => { 
+                    const review = topReviews.find(r => r.book_id === book._id);
+                    return { ...book, score: review?.score || 0 };
             });
             const sortedTopBooks = validTopBooks.sort((a, b) => b.score - a.score);
 

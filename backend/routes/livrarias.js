@@ -218,20 +218,24 @@ router.get("/route", async (req, res) => {
 localização*/
 
 router.get("/count_nearby", async (req, res) => {
-    const { lat, lon, radius } = req.query;
+    const { lat, long, radius } = req.query;
 
     try {
         const livrarias = await db.collection("livrarias").find({
             geometry: {
                 $near: {
-                    $geometry: { type: "Point", coordinates: [parseFloat(lon), parseFloat(lat)] },
+                    $geometry: { type: "Point", coordinates: [parseFloat(long), parseFloat(lat)] },
                     $maxDistance: parseInt(radius)
                 }
             }
         }).toArray();
 
-        // Resumidamente é pegar na R2.3 e a contar o número de livrarias
+        // Contar o número de livrarias
         const count = livrarias.length;
+
+        if (count === 0) {
+            return res.status(404).send({ message: "Nenhuma livraria encontrada nas proximidades." });
+        }
 
         res.status(200).send({
             count
@@ -251,18 +255,18 @@ dentro da feira do livro.. Coordenadas para testar: [-
 
 // ROTA - Verificar se um determinado user (Ponto) se encontra dentro da feira do livro
 router.get("/user_fair", async (req, res) => {
-    const { lat, lon } = req.query;
+    const { lat, long } = req.query;
 
-    if (!lat || !lon) {
-        return res.status(400).json({ error: "É necessário a latitude e a longitude do ponto." });
+    if (!lat || !long) {
+        return res.status(400).json({ error: "É necessário inserir as coordenadas completas" });
     }
 
     try {
-        const point = [parseFloat(lon), parseFloat(lat)];
+        const point = [parseFloat(long), parseFloat(lat)];
 
         // Buscar a feira do livro na coleção 'livrarias'
         const feira = await db.collection("livrarias").findOne({
-            name: "Feira do Livro",
+            "geometry.type": "Polygon",
             geometry: {
                 $geoIntersects: {
                     $geometry: {
@@ -275,16 +279,16 @@ router.get("/user_fair", async (req, res) => {
 
         if (feira) {
             res.status(200).send({
-                message: "O ponto está dentro da área da Feira do Livro."
+                message: "O utilizador está na Feira do Livro."
             });
         } else {
             res.status(200).send({
-                message: "O ponto está fora da área da Feira do Livro."
+                message: "O utilizador não está na Feira do Livro."
             });
         }
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: "Ocorreu um erro ao verificar se o ponto se encontra dentro da feira do livro." });
+        res.status(500).json({ error: "Ocorreu um erro." });
     }
 });
 

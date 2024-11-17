@@ -1,6 +1,7 @@
 import express from "express";
 import db from "../db/config.js";
 import { ObjectId } from "mongodb";
+import { distance } from "@turf/turf";
 
 const router = express.Router();
 
@@ -119,7 +120,7 @@ router.get("/id/:id", async (req, res) => {
         const livraria = await db.collection('livrarias').findOne({ _id: livrariaId });
 
         if (!livraria) {
-            return res.status(404).json({ error: "Livraria não encontrada." });
+            return res.status(404).json({ error: "Livraria " + livrariaId + " não encontrada." });
         }
 
         // Retorna apenas os livros associados à livraria
@@ -136,46 +137,39 @@ router.get("/near/:long/:lat", async (req, res) => {
         const long = parseFloat(req.params.long);  // Longitude
         const lat = parseFloat(req.params.lat);    // Latitude
 
-        console.log(long, lat);
-
         // Validação das coordenadas (longitude e latitude)
         if (isNaN(long) || isNaN(lat)) {
             return res.status(400).json({ error: "Longitude e/ou latitude inválidos." });
         }
 
-        // Consulta no banco de dados para livrarias perto da localização
-        const results = await db.collection('livrarias').find({
-            $and: [
-                { "geometry.type": "Point" },  // Tipo de geometria (Point)
-                {
-                    location: {
-                        $near: {  // Usar $near para procurar documentos próximos
-                            $geometry: {
-                                type: "Point",
-                                coordinates: [long, lat]  // Coordenadas passadas (longitude, latitude)
-                            },
-                            $maxDistance: 1000  // Distância máxima em metros
-
-                        }
-                    }
-                }
-            ]
+         // Realiza a consulta geoespacial usando o operador $near para índice 2d
+         const livrarias = await db.collection('livrarias').find({
+            "geometry.coordinates": {  // Agora acessamos as coordenadas dentro do campo "geometry"
+                $near: [long, lat]   // Consulta pelo ponto de referência (longitude, latitude)
+            }
         }).toArray();
 
-        console.log(results);
-
         // Caso não encontre nenhuma livraria nas proximidades
-        if (results.length === 0) {
+        if (livrarias.length === 0) {
             return res.status(404).json({ message: "Nenhuma livraria encontrada nas proximidades." });
         }
 
-        // Retorno dos resultados com as livrarias e seus livros
-        res.status(200).json(results);
+        // Apenas retorne os dados necessários
+        const livrariasResponse = livrarias.map(livraria => {
+            return {
+                id: livraria._id,
+                name: livraria.properties.INF_NOME, // O nome da livraria
+                address: livraria.properties.INF_MORADA, // O endereço da livraria
+            };
+        });
+
+        // Retorno dos resultados com as livrarias e suas distâncias
+        res.status(200).json(livrariasResponse);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 /*Lista de livrarias perto do caminho de uma rota*/
 

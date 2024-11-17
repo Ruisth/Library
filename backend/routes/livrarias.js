@@ -4,11 +4,35 @@ import { ObjectId } from "mongodb";
 
 const router = express.Router();
 
-// return first 50 documents from movies collection
+// return documents from library collection
 router.get("/", async (req, res) => {
-    let results = await db.collection('livrarias').find({})
-        .toArray();
-    res.send(results).status(200);
+    try {
+        // Parâmetros de paginação
+        let page = parseInt(req.query.page) || 1; // Página atual, padrão é 1
+        let limit = 20; // Máximo de livros por página
+        let skip = (page - 1) * limit; // Quantidade de documentos a saltar
+
+        // Procura os livros com paginação
+        let library = await db.collection('livrarias')
+            .find({})
+            .skip(skip)
+            .limit(limit)
+            .toArray();
+
+        // Conta o total de livros na coleção
+        let totalLibraries = await db.collection('livrarias').countDocuments();
+
+        // Envia os resultados com informações adicionais de paginação
+        res.status(200).send({
+            library,
+            currentPage: page,
+            totalPages: Math.ceil(totalLibraries / limit),
+            totalLibraries,
+        });
+    } catch (error) {
+        console.error("Erro ao procurar livros:", error);
+        res.status(500).send({ message: "Erro ao procurar livros" });
+    }
 });
 
 
@@ -20,6 +44,17 @@ router.post("/", async (req, res) => {
         // Verifica se os dados são válidos
         if (!livraria_id || !Array.isArray(books)) {
             return res.status(400).json({ error: "Dados inválidos: 'livraria_id' e 'books' são obrigatórios e 'books' deve ser uma lista." });
+        }
+
+        // Busca os livros que existem na coleção 'books'
+        const existingBooks = await db.collection("books").find({ _id: { $in: books } }).toArray();
+
+        // Extraia os IDs dos livros existentes
+        const validBookIds = existingBooks.map(book => book._id);
+
+        // Se nenhum livro válido for encontrado, retorne erro
+        if (validBookIds.length === 0) {
+            return res.status(400).json({ error: "Nenhum dos livros fornecidos existe na coleção 'books'." });
         }
 
         // Atualiza ou cria a entrada para a livraria
@@ -34,7 +69,8 @@ router.post("/", async (req, res) => {
             message: `Livros adicionados à livraria ${livraria_id}.`,
             matchedCount: result.matchedCount,
             modifiedCount: result.modifiedCount,
-            upsertedId: result.upsertedId
+            upsertedId: result.upsertedId,
+            addedBooks: validBookIds
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -83,17 +119,19 @@ router.get("/near/:long/:lat", async (req, res) => {
         // Consulta no banco de dados para livrarias perto da localização
         const results = await db.collection('livrarias').find({
             $and: [
-                {"geometry.type": "Point"},  // Tipo de geometria (Point)
-                {location: {
-                    $near: {  // Usar $near para procurar documentos próximos
-                        $geometry: {
-                            type: "Point",
-                            coordinates: [long, lat]  // Coordenadas passadas (longitude, latitude)
-                        },
-                        $maxDistance: 1000  // Distância máxima em metros
-                    
+                { "geometry.type": "Point" },  // Tipo de geometria (Point)
+                {
+                    location: {
+                        $near: {  // Usar $near para procurar documentos próximos
+                            $geometry: {
+                                type: "Point",
+                                coordinates: [long, lat]  // Coordenadas passadas (longitude, latitude)
+                            },
+                            $maxDistance: 1000  // Distância máxima em metros
+
+                        }
                     }
-                }}
+                }
             ]
         }).toArray();
 
@@ -116,7 +154,7 @@ router.get("/near/:long/:lat", async (req, res) => {
 
 router.post("/route", async (req, res) => {
     const { route, maxDistance = 1000 } = req.body; // rota é uma lista de pontos {lat, long}
-    
+
     if (!Array.isArray(route) || route.length === 0) {
         return res.status(400).json({ error: 'Rota inválida' });
     }
@@ -125,7 +163,7 @@ router.post("/route", async (req, res) => {
     let livrarias = [];
     for (const point of route) {
         const { lat, long } = point;
-        
+
         const nearbyLivrarias = await db.collection('livrarias').find({
             location: {
                 $near: {

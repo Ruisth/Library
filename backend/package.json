@@ -11,6 +11,7 @@
   "license": "MIT License",
   "description": "backend for ADAD final project",
   "dependencies": {
+    "@turf/turf": "^7.1.0",
     "express": "^4.21.1",
     "mongodb": "^6.10.0",
     "nodemon": "^3.1.7"

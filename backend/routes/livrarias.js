@@ -43,7 +43,7 @@ router.post("/", async (req, res) => {
 
 
 /*Consultar livros numa livraria*/
-router.get("/:id", async (req, res) => {
+router.get("/id/:id", async (req, res) => {
     try {
         const livrariaId = parseInt(req.params.id);
 
@@ -52,7 +52,7 @@ router.get("/:id", async (req, res) => {
             return res.status(400).json({ error: "ID da livraria não fornecido." });
         }
 
-        // Buscando a livraria pelo ID
+        // Procura a livraria pelo ID
         const livraria = await db.collection('livrarias').findOne({ _id: livrariaId });
 
         if (!livraria) {

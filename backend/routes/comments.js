@@ -14,24 +14,24 @@ router.post("/", async (req, res) => {
             return res.status(400).send({ error: "Os campos 'user_id', 'book_id' e 'comment' são obrigatórios." });
         }
 
-        // Verificar se o user_id existe
+        // Verifica se o user_id existe
         const userExists = await db.collection('users').findOne({ _id: user_id });
         if (!userExists) {
             return res.status(404).send({ error: "Usuário não encontrado." });
         }
 
-        // Verificar se o book_id existe
+        // Verifica se o book_id existe
         const bookExists = await db.collection('books').findOne({ _id: book_id });
         if (!bookExists) {
             return res.status(404).send({ error: "Livro não encontrado." });
         }
 
-         // Buscar o maior _id atual na coleção e gerar o próximo número
+         // Procura o maior _id atual na coleção e gera o próximo número
          const lastComment = await db.collection('comments').find().sort({ _id: -1 }).limit(1).toArray();
          const nextId = lastComment.length > 0 ? lastComment[0]._id + 1 : 1;
 
 
-        // Montar o comentário a ser inserido
+        // Constrói o comentário a ser inserido
         const newComment = {
             _id:  nextId, // Próximo número sequencial
             user_id: user_id,
@@ -40,7 +40,7 @@ router.post("/", async (req, res) => {
             date: new Date() // Data atual do sistema
         };
 
-        // Inserir o comentário na coleção 'comments'
+        // Insere o comentário na coleção 'comments'
         const result = await db.collection('comments').insertOne(newComment);
 
         // Retorna sucesso com o comentário adicionado
@@ -63,24 +63,24 @@ router.post("/", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
     try {
-        // Pegar o ID do comentário a ser excluído a partir dos parâmetros da URL
+        // Seleciona o ID do comentário a ser excluído a partir dos parâmetros da URL
         const commentId = parseInt(req.params.id);
 
-        // Verificar se o ID é válido
+        // Verifica se o ID é válido
         if (isNaN(commentId)) {
             return res.status(400).send({ error: "O ID do comentário deve ser um número válido." });
         }
 
-        // Verificar se o comentário existe
+        // Verifica se o comentário existe
         const commentExists = await db.collection('comments').findOne({ _id: commentId });
         if (!commentExists) {
             return res.status(404).send({ error: "Comentário não encontrado." });
         }
 
-        // Remover o comentário da coleção
+        // Remove o comentário da coleção
         await db.collection('comments').deleteOne({ _id: commentId });
 
-        // Retornar resposta de sucesso
+        // Retorna resposta de sucesso
         res.status(200).send({ message: "Comentário excluído com sucesso." });
     } catch (error) {
         console.error("Erro ao excluir comentário:", error);

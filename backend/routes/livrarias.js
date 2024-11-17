@@ -173,7 +173,7 @@ router.get("/near/:long/:lat", async (req, res) => {
 
 
 // Lista de livrarias perto de uma rota
-router.post("/route", async (req, res) => {
+router.get("/route", async (req, res) => {
     const { coordenadas } = req.body;
 
     // Verificar se há dados suficientes para construir um polígono para fazer a área de procura
@@ -217,7 +217,7 @@ router.post("/route", async (req, res) => {
 /*Retornar número de livrarias perto de uma
 localização*/
 
-router.get("/count-near", async (req, res) => {
+router.get("/count_nearby", async (req, res) => {
     const { lat, lon, radius } = req.query;
 
     try {
@@ -250,7 +250,7 @@ dentro da feira do livro.. Coordenadas para testar: [-
 9.155644342145884,38.72749043040882]*/
 
 // ROTA - Verificar se um determinado user (Ponto) se encontra dentro da feira do livro
-router.get("/verify-fair", async (req, res) => {
+router.get("/user_fair", async (req, res) => {
     const { lat, lon } = req.query;
 
     if (!lat || !lon) {

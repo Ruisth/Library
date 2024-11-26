@@ -1,49 +1,53 @@
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import CardGroup from 'react-bootstrap/CardGroup';
 import Row from 'react-bootstrap/Row';
-
 import BookCard from "../components/BookCard";
 
 export default function App() {
-  let [books, setBooks] = useState([]);
+    const [books, setBooks] = useState([]);
 
-  const getBooks = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/books', {
-        method: 'GET',
-        headers: {
-        'Content-Type': 'application/json'
-        },
-      });
-      
-      const data = await response.json();
-      console.log(data)
-      setBooks(data);
+    const getBooks = async () => {
+        try {
+            const response = await fetch('http://localhost:3000/books', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            });
 
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  }
+            const data = await response.json();
+            console.log('Books API Response:', data);
 
-  useEffect(() => {
-    getBooks();
-  }, []);
+            if (Array.isArray(data)) {
+                setBooks(data);
+            } else if (Array.isArray(data.books)) {
+                setBooks(data.books);
+            } else {
+                console.error('Unexpected API response:', data);
+            }
+        } catch (error) {
+            console.error('Error fetching books:', error);
+        }
+    };
 
-  return (
-    <div className="container pt-5 pb-5">
-        <h2>Books</h2>
-        <CardGroup>
-            <Row xs={1} md={2} className="d-flex justify-content-around">
-            {books && books.map((book) => {
-                return (
-                    <BookCard 
-                        key={book._id} 
-                        {...book}
-                    />
-                );
-            })}
-            </Row>
-        </CardGroup>
-    </div>
-  )
+    useEffect(() => {
+        getBooks();
+    }, []);
+
+    return (
+        <div className="container pt-5 pb-5">
+            <h2>Books</h2>
+            <CardGroup>
+                <Row xs={1} md={2} className="d-flex justify-content-around">
+                    {Array.isArray(books) && books.length > 0 ? (
+                        books.map((book) => (
+                            <BookCard key={book._id} {...book} />
+                        ))
+                    ) : (
+                        <p>No books available.</p>
+                    )}
+                </Row>
+            </CardGroup>
+        </div>
+    );
 }

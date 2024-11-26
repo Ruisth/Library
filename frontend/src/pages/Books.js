@@ -24,7 +24,7 @@ export default function App() {
       console.error('Error:', error);
     }
   }
-
+//PASSAR  PARAMETROS DO BOOK
   useEffect(() => {
     getBooks();
   }, []);

@@ -9,7 +9,7 @@ function BookCard(props) {
         <Card.Text>
           _id: {props._id}
         </Card.Text>
-        <Button href={"/book/" + props._id} variant="outline-primary">Open Book</Button>
+        <Button href={"/books/id/" + props._id} variant="outline-primary">Open Book</Button>
       </Card.Body>
     </Card>
   );

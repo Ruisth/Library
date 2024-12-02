@@ -39,7 +39,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/books" element={<Books />} />
           <Route path="/users" element={<Users />} />
-          <Route path="/book/:id" element={<Book />} />
+          <Route path="/books/id/:id" element={<Book />} />
         </Routes>
         <Footer />
       </Router>

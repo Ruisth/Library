@@ -6,7 +6,7 @@ export default function App() {
     <React.Fragment>
       <div className="jumbotro pt-5 pb-5">
         <div className="container text-left">
-          <h1 className="display-4">OBRIGADO RUI!!!</h1>
+          <h1 className="display-4">Library Project</h1>
           <p className="lead">This document/sample presents the struture for the front-end practical work for the ADAD course evaluation.</p>
           <hr className="my-4" />
           <p>Armazenamento de dados em ambientes distribuidos (ADAD) | Mestrado em Engenharia de Telecomunicações e Informática (METI)</p>

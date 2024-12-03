@@ -16,6 +16,7 @@ import Home from "./pages/Home";
 import Books from "./pages/Books";
 import Users from "./pages/Users";
 import Book from "./pages/Book";
+import User from "./pages/User";
 import Footer from './components/Footer';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
           <Route path="/books" element={<Books />} />
           <Route path="/users" element={<Users />} />
           <Route path="/books/id/:id" element={<Book />} />
+          <Route path="/users/:id" element={<User />} />
         </Routes>
         <Footer />
       </Router>

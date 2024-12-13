@@ -73,29 +73,33 @@ export default function App() {
       {book ? (
         <div>
           <h3>{book.title || "Title not available"}</h3>
-          {book.thumbnailUrl ? (
-            <img
-              src={book.thumbnailUrl}
-              alt={book.title || "Book Thumbnail"}
-              style={{ width: "200px", borderRadius: "8px" }}
-            />
-          ) : (
-            <p>No thumbnail available</p>
-          )}
-          <p><strong>ISBN:</strong> {book.isbn || "N/A"}</p>
-          <p><strong>Page Count:</strong> {book.pageCount || "N/A"}</p>
-          <p><strong>Published Date:</strong> {formatPublishedDate(book.publishedDate)}</p>
-          <p><strong>Status:</strong> {book.status || "N/A"}</p>
-          <p><strong>Authors:</strong> {book.authors ? book.authors.join(", ") : "N/A"}</p>
-          <p><strong>Categories:</strong> {book.categories ? book.categories.join(", ") : "N/A"}</p>
-          <p><strong>Description:</strong> {book.longDescription || "No description available."}</p>
+          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+            {book.thumbnailUrl ? (
+              <img
+                src={book.thumbnailUrl}
+                alt={book.title || "Book Thumbnail"}
+                style={{ width: "200px", borderRadius: "8px", marginRight: "20px" }}
+              />
+            ) : (
+              <p>No thumbnail available</p>
+            )}
+            <div>
+              <p><strong>ISBN:</strong> {book.isbn || "N/A"}</p>
+              <p><strong>Page Count:</strong> {book.pageCount || "N/A"}</p>
+              <p><strong>Published Date:</strong> {formatPublishedDate(book.publishedDate)}</p>
+              <p><strong>Status:</strong> {book.status || "N/A"}</p>
+              <p><strong>Authors:</strong> {book.authors ? book.authors.join(", ") : "N/A"}</p>
+              <p><strong>Categories:</strong> {book.categories ? book.categories.join(", ") : "N/A"}</p>
+              <p><strong>Description:</strong> {book.longDescription || "No description available."}</p>
+            </div>
+          </div>
         </div>
       ) : (
         !loading && !error && <p>Book not found.</p>
       )}
-    
-    {/* Button to go to the previous list */}
-    <div className="mt-4">
+
+      {/* Button to go to the previous list */}
+      <div className="mt-4">
         <button
           className="btn btn-primary"
           onClick={() => navigate('/books')}

@@ -7,12 +7,13 @@ export default function App() {
       <div className="jumbotro pt-5 pb-5">
         <div className="container text-left">
           <h1 className="display-4">Library Project</h1>
+          <img src="/library_img.jpeg" alt="Library" className="img-fluid my-3" style={{ width: '70%'}} />
           <p className="lead">This document/sample presents the struture for the front-end practical work for the ADAD course evaluation.</p>
           <hr className="my-4" />
           <p>Armazenamento de dados em ambientes distribuidos (ADAD) | Mestrado em Engenharia de Telecomunicações e Informática (METI)</p>
           <p className="lead">
-            <a className="btn btn-primary btn-lg" href="/books" role="button">Books &rarr;</a>
-            <a className="btn btn-primary btn-lg ms-1" href="/users" role="button">Users &rarr;</a>
+            <a className="btn btn-primary btn-lg" href="/books" role="button" style={{ fontSize: '1.5rem', padding: '1rem 2rem' }}>Books &rarr;</a>
+            <a className="btn btn-primary btn-lg ms-1" href="/users" role="button" style={{ fontSize: '1.5rem', padding: '1rem 2rem' }}>Users &rarr;</a>
           </p>
         </div>
       </div>

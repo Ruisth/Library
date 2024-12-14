@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import CardGroup from 'react-bootstrap/CardGroup';
 import Row from 'react-bootstrap/Row';
 import Pagination from 'react-bootstrap/Pagination';
-import UserCard from "../components/UserCard";
+import UsersCard from "../components/UsersCard";
 
 export default function App() {
     const [users, setUsers] = useState([]);
@@ -63,7 +63,7 @@ export default function App() {
                 <Row xs={1} md={2} className="d-flex justify-content-around">
                     {users.length > 0 ? (
                         users.map((user) => (
-                            <UserCard key={user._id} {...user} />
+                            <UsersCard key={user._id} {...user} />
                         ))
                     ) : (
                         <p>No users available.</p>

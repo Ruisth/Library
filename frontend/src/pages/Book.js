@@ -18,6 +18,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [averageScore, setAverageScore] = useState(null);
   const [totalReviews, setTotalReviews] = useState(null);
+  const [comments, setComments] = useState([]);
 
 
   const fetchBook = async () => {
@@ -43,6 +44,7 @@ export default function App() {
       if (data && typeof data === 'object') {
         setBook(data);
         fetchAverageScore(data._id); // Fetch average score for this book
+        fetchComments(data._id); // Fetch comments for this book
       } else {
         throw new Error('Unexpected API response format');
       }
@@ -51,6 +53,34 @@ export default function App() {
       setError(err.message || 'Error fetching book details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchComments = async bookId => {
+    try {
+      const response = await fetch(`http://localhost:3000/books/comments/${bookId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch comments: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Comments API Response:', data);
+
+      if (data && typeof data === 'object' && data.comments !== undefined) {
+        setComments(data.comments);
+      } else {
+        throw new Error('Unexpected API response format');
+      }
+    }
+    catch (err) {
+      console.error("Error fetching comments:", err);
+      setError(err.message || 'Error fetching comments');
     }
   };
 
@@ -104,9 +134,9 @@ export default function App() {
 
     return (
       <div>
-        {Array(fullStars).fill(<span>&#9733;</span>)} {/* Full stars */}
-        {halfStar && <span>&#9733;</span>} {/* Half star */}
-        {Array(emptyStars).fill(<span>&#9734;</span>)} {/* Empty stars */}
+        {Array(fullStars).fill(<span style={{color: 'darkgoldenrod'}}>&#9733;</span>)} {/* Full stars */}
+        {halfStar && <span style={{color: 'darkgoldenrod'}}>&#9733;</span>} {/* Half star */}
+        {Array(emptyStars).fill(<span style={{color: 'darkgoldenrod'}}>&#9734;</span>)} {/* Empty stars */}
         <span> ({roundedScore})</span> {/* Rounded score */}
       </div>
     );
@@ -133,9 +163,10 @@ export default function App() {
               </div>
             ) : (
               <div style={{ marginRight: "200px", borderRadius: "8px" }}>
-              <p></p>
-              <p>No_thumbnail_available</p>
-              <p><strong>Average Score:</strong> {averageScore ? renderStars(averageScore) : "N/A"}</p>
+                <p></p>
+                <p>No_thumbnail_available</p>
+                <p><strong>Average Score:</strong> {averageScore ? renderStars(averageScore) : "N/A"}</p>
+                <p><strong>Total Reviews:</strong> {totalReviews || "N/A"}</p>
               </div>
             )}
             <div>
@@ -146,6 +177,28 @@ export default function App() {
               <p><strong>Authors:</strong> {book.authors ? book.authors.join(", ") : "N/A"}</p>
               <p><strong>Categories:</strong> {book.categories ? book.categories.join(", ") : "N/A"}</p>
               <p><strong>Description:</strong> {book.longDescription || "No description available."}</p>
+              <p style={{marginTop: '50px', color: 'darkgoldenrod' }}><strong>Comments:</strong></p>
+              <div style={{ maxHeight: '200px', overflowY: 'scroll' }}>
+                <table>
+                  <tbody>
+                    {comments.map((comment, index) => (
+                      <tr key={index}>
+                        <td>
+                          <div style={{ marginBottom: '20px' }}>
+                            {/* Comentário do user */}
+                            <p style={{ marginBottom: '5px' }}>{comment.text || "No comment available"}</p>
+
+                            {/* Nome do user e data */}
+                            <span style={{ fontSize: '0.9em', color: 'black'}}>
+                              {comment.user || "Anonymous"} -> {comment.date || "N/A"}
+                            </span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

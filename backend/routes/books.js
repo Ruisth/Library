@@ -60,26 +60,27 @@ router.post("/", async (req, res) => {
             const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = book;
 
             return {
-            _id: nextId++,
-            title,
-            isbn,
-            pageCount,
-            publishedDate,
-            thumbnailUrl,
-            shortDescription,
-            longDescription,
-            status,
-            authors,
-            categories
+                _id: nextId++,
+                title,
+                isbn,
+                pageCount,
+                publishedDate,
+                thumbnailUrl,
+                shortDescription,
+                longDescription,
+                status,
+                authors,
+                categories
             };
         });
 
         const result = await db.collection('books').insertMany(newBooks);
 
-        res.status(201).send({ 
-            message: 'Livro/os inserido com sucesso.', 
-            insertedCount: result.insertedCount, 
-            insertedIds: result.insertedIds });
+        res.status(201).send({
+            message: 'Livro/os inserido com sucesso.',
+            insertedCount: result.insertedCount,
+            insertedIds: result.insertedIds
+        });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao inserir o livro.' });
     }
@@ -485,12 +486,39 @@ router.get("/comments/:id", async (req, res) => {
                     as: 'book_comments' // Nome do resultado
                 }
             },
-            { $unwind: { path: '$book_comments', preserveNullAndEmptyArrays: true } }, // Expande o array de comentários
+            { $unwind: { path: '$book_comments', preserveNullAndEmptyArrays: true } }, // Expande o array de comentários            
+            {
+                $lookup: {
+                    from: 'users', // Coleção users
+                    localField: 'book_comments.user_id', // Campo de user_id no comentário
+                    foreignField: '_id', // Campo _id na coleção users
+                    as: 'user_info' // Nome do resultado
+                }
+            },
+            { $unwind: { path: '$user_info', preserveNullAndEmptyArrays: true } }, // Expande os dados do usuário
+            {
+                $addFields: {
+                    'book_comments.date': { 
+                        $dateToString: {
+                            format: '%d-%m-%Y', // Formato da data
+                            date: { $toDate: { $toLong: '$book_comments.date' }} // Converte a data para ISO
+                        }
+                    }
+                }
+            },
             {
                 $group: {
                     _id: '$_id',
-                    title: { $first: '$title' },
-                    comments: { $push: '$book_comments' } // Agrupa os comentários
+                    title: { $first: '$title' }, // O título do livro
+                    comments: {
+                        $push: {
+                            text: '$book_comments.comment',
+                            date: '$book_comments.date',
+                            user: {
+                                $concat: ['$user_info.first_name', ' ', '$user_info.last_name']
+                            } // Concatena o nome e o sobrenome do usuário
+                        }
+                    }
                 }
             },
             {

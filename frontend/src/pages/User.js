@@ -73,7 +73,7 @@ export default function App() {
       {user ? (
         <>
           <UserCard key={user._id} />
-          <div className="user-info">
+          <div className="user-info text-center">
             <h3>{`${user.first_name} ${user.last_name}`}</h3>
             <p><strong>Year of birth:</strong> {user.year_of_birth || "N/A"}</p>
             <p><strong>Job:</strong> {user.job || "N/A"}</p>
@@ -81,34 +81,35 @@ export default function App() {
           <div className="top-books">
             <h3 className="mt-4">Top 3 Books from this user</h3>
             {topBooks?.length > 0 ? (
-  <ul className="list-unstyled">
-    {topBooks.map((book, index) => (
-      <li key={index} className="d-flex mb-4 align-items-start">
-        {book.thumbnailUrl ? (
-          <div className="book-thumbnail me-3">
-            <a href={`../books/id/${book._id}`} target="_blank" rel="noopener noreferrer">
-              <img
-                src={book.thumbnailUrl}
-                alt={book.title || "Book Thumbnail"}
-                className="img-fluid rounded-3"
-              />
-            </a>
-          </div>
-        ) : (
-          <div className="book-thumbnail me-3">
-            <p>No Image Available</p>
-          </div>
-        )}
-        <div>
-          <p><strong>Title:</strong> {book.title}</p>
-          <p><strong>Score:</strong> {book.score}</p>
-        </div>
-      </li>
-    ))}
-  </ul>
-) : (
-  <p>No books to display.</p>
-)}
+              <div className="row">
+                {topBooks.map((book, index) => (
+                  <div key={index} className="col-md-4 mb-4">
+                    <div className="card h-100 text-center">
+                      <a href={`../books/id/${book._id}`} rel="noopener noreferrer">
+                        {book.thumbnailUrl ? (
+                          <img
+                            src={book.thumbnailUrl}
+                            alt={book.title || "Book Thumbnail"}
+                            className="card-img-top img-fluid rounded-3"
+                            style={{ width: '40%', marginTop: '2rem' }}
+                          />
+                        ) : (
+                          <div className="card-img-top img-fluid rounded-3 d-flex align-items-center justify-content-center" style={{ height: '200px', backgroundColor: '#f0f0f0' }}>
+                            <p>No Image Available</p>
+                          </div>
+                        )}
+                      </a>
+                      <div className="card-body text-center">
+                        <h5 className="card-title">{book.title}</h5>
+                        <p className="card-text"><strong>Score:</strong> {book.score || "N/A"}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No books to display.</p>
+            )}
           </div>
         </>
       ) : (
@@ -116,8 +117,8 @@ export default function App() {
       )}
 
       <div className="mt-4 d-flex justify-content-between">
-        <button className="btn btn-primary" onClick={() => navigate("/users")}>
-          Back to Users List
+        <button className="btn btn-primary" onClick={() => navigate(-1)}>
+          Back
         </button>
         {user && (
           <button className="btn btn-danger ms-2" onClick={deleteUser}>

@@ -210,9 +210,9 @@ export default function App() {
       <div className="mt-4">
         <button
           className="btn btn-primary"
-          onClick={() => navigate('/books')}
+          onClick={() => navigate(-1)}
         >
-          Back to Book List
+          Back
         </button>
       </div>
     </div>

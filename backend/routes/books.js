@@ -466,6 +466,52 @@ router.get("/comments", async (req, res) => {
 });
 
 
+// Obter comentários de um livro específico
+router.get("/comments/:id", async (req, res) => {
+    const bookId = parseInt(req.params.id);
+
+    if (isNaN(bookId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + bookId });
+    }
+
+    try {
+        const results = await db.collection('books').aggregate([
+            { $match: { _id: bookId } }, // Filtra o livro pelo ID
+            {
+                $lookup: {
+                    from: 'comments', // Coleção comments
+                    localField: '_id', // Campo na coleção books que indica o ID do livro
+                    foreignField: 'book_id', // Campo na coleção comments que indica o ID do livro
+                    as: 'book_comments' // Nome do resultado
+                }
+            },
+            { $unwind: { path: '$book_comments', preserveNullAndEmptyArrays: true } }, // Expande o array de comentários
+            {
+                $group: {
+                    _id: '$_id',
+                    title: { $first: '$title' },
+                    comments: { $push: '$book_comments' } // Agrupa os comentários
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    comments: { $ifNull: ['$comments', []] } // Garante que comentários vazios sejam tratados
+                }
+            }
+        ]).toArray();
+
+        if (results.length > 0) {
+            res.status(200).json(results[0]); // Retorna o primeiro livro encontrado
+        } else {
+            res.status(404).json({ error: 'Livro não encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar os comentários do livro.' });
+    }
+});
+
+
 // get books by job
 /*Número total de reviews por “job”
 Resultado deverá apresentar apenas o “job” e número

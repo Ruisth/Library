@@ -17,6 +17,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [averageScore, setAverageScore] = useState(null);
+  const [totalReviews, setTotalReviews] = useState(null);
 
 
   const fetchBook = async () => {
@@ -71,6 +72,7 @@ export default function App() {
 
       if (data && typeof data === 'object' && data.averageScore !== undefined) {
         setAverageScore(data.averageScore);
+        setTotalReviews(data.totalReviews);
       } else {
         throw new Error('Unexpected API response format');
       }
@@ -127,6 +129,7 @@ export default function App() {
                   style={{ width: "200px", borderRadius: "8px" }}
                 />
                 <p><strong>Average Score:</strong> {averageScore ? renderStars(averageScore) : "N/A"}</p>
+                <p><strong>Total Reviews:</strong> {totalReviews || "N/A"}</p>
               </div>
             ) : (
               <div style={{ marginRight: "200px", borderRadius: "8px" }}>

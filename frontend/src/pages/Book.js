@@ -16,6 +16,7 @@ export default function App() {
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [averageScore, setAverageScore] = useState(null);
 
 
   const fetchBook = async () => {
@@ -40,6 +41,7 @@ export default function App() {
 
       if (data && typeof data === 'object') {
         setBook(data);
+        fetchAverageScore(data._id); // Fetch average score for this book
       } else {
         throw new Error('Unexpected API response format');
       }
@@ -48,6 +50,33 @@ export default function App() {
       setError(err.message || 'Error fetching book details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAverageScore = async bookId => {
+    try {
+      const response = await fetch(`http://localhost:3000/books/averageScore/${bookId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch average score: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log('Average Score API Response:', data);
+
+      if (data && typeof data === 'object' && data.averageScore !== undefined) {
+        setAverageScore(data.averageScore);
+      } else {
+        throw new Error('Unexpected API response format');
+      }
+    } catch (err) {
+      console.error("Error fetching average score:", err);
+      setError(err.message || 'Error fetching average score');
     }
   };
 
@@ -64,6 +93,22 @@ export default function App() {
     return "N/A";
   };
 
+  // Helper function to convert score to stars
+  const renderStars = (score) => {
+    const fullStars = Math.floor(score);
+    const halfStar = score % 1 >= 0.5;
+    const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
+    const roundedScore = score.toFixed(2);
+
+    return (
+      <div>
+        {Array(fullStars).fill(<span>&#9733;</span>)} {/* Full stars */}
+        {halfStar && <span>&#9733;</span>} {/* Half star */}
+        {Array(emptyStars).fill(<span>&#9734;</span>)} {/* Empty stars */}
+        <span> ({roundedScore})</span> {/* Rounded score */}
+      </div>
+    );
+  };
 
   return (
     <div className="container pt-5 pb-5">
@@ -71,17 +116,24 @@ export default function App() {
       {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       {book ? (
-        <div>
+        <div style={{ marginTop: "40px" }}>
           <h3>{book.title || "Title not available"}</h3>
-          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', marginTop: '20px' }}>
             {book.thumbnailUrl ? (
-              <img
-                src={book.thumbnailUrl}
-                alt={book.title || "Book Thumbnail"}
-                style={{ width: "200px", borderRadius: "8px", marginRight: "20px" }}
-              />
+              <div style={{ marginRight: "20px" }}>
+                <img
+                  src={book.thumbnailUrl}
+                  alt={book.title || "Book Thumbnail"}
+                  style={{ width: "200px", borderRadius: "8px" }}
+                />
+                <p><strong>Average Score:</strong> {averageScore ? renderStars(averageScore) : "N/A"}</p>
+              </div>
             ) : (
-              <p>No thumbnail available</p>
+              <div style={{ marginRight: "200px", borderRadius: "8px" }}>
+              <p></p>
+              <p>No_thumbnail_available</p>
+              <p><strong>Average Score:</strong> {averageScore ? renderStars(averageScore) : "N/A"}</p>
+              </div>
             )}
             <div>
               <p><strong>ISBN:</strong> {book.isbn || "N/A"}</p>

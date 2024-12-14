@@ -526,5 +526,41 @@ router.get("/filter", async (req, res) => {
     }
 });
 
+/*obter o average score do livro*/
+router.get("/averageScore/:id", async (req, res) => {
+    const bookId = parseInt(req.params.id);
+
+    try {
+        const result = await db.collection('books').aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: 'reviews.book_id',
+                    as: 'user_reviews'
+                }
+            },
+            { $unwind: '$user_reviews' },
+            { $unwind: '$user_reviews.reviews' },
+            { $match: { $expr: { $eq: ['$user_reviews.reviews.book_id', '$_id'] } } },
+            { $match: { _id: bookId } }, // Filtra pelo ID do livro
+            {
+                $group: {
+                    _id: '$_id',
+                    averageScore: { $avg: '$user_reviews.reviews.score' },
+                    totalReviews: { $sum: 1 }
+                }
+            }
+        ]).toArray();
+
+        if (result.length > 0) {
+            res.status(200).json(result[0]);
+        } else {
+            res.status(404).json({ error: 'Book not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 export default router;

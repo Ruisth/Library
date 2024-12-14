@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import CardGroup from 'react-bootstrap/CardGroup';
 import Row from 'react-bootstrap/Row';
 import Pagination from 'react-bootstrap/Pagination';
@@ -31,51 +31,56 @@ export default function App() {
         } catch (error) {
             console.error('Error fetching users:', error);
         }
-    }; 
+    };
 
     useEffect(() => {
         getUsers(currentPage);
     }, [currentPage]);
 
-     // Handle pagination click
-     const handlePageChange = (pageNumber) => {
+    // Handle pagination click
+    const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber); // Atualiza a página atual
     };
 
-     // Criar os itens de paginação
-     const paginationItems = [];
-     for (let page = 1; page <= totalPages; page++) {
-         paginationItems.push(
-             <Pagination.Item
-                 key={page}
-                 active={page === currentPage}
-                 onClick={() => handlePageChange(page)}
-             >
-                 {page}
-             </Pagination.Item>
-         );
-     }
+    // Criar os itens de paginação
+    const paginationItems = [];
+    for (let page = 1; page <= totalPages; page++) {
+        paginationItems.push(
+            <Pagination.Item
+                key={page}
+                active={page === currentPage}
+                onClick={() => handlePageChange(page)}
+            >
+                {page}
+            </Pagination.Item>
+        );
+    }
 
-  return (
-    <div className="container pt-5 pb-5">
-      <h2>Users Page</h2>
-      <CardGroup>
-            <Row xs={1} md={2} className="d-flex justify-content-around">
-            {users.length > 0 ? (
+    return (
+        <div className="container pt-5 pb-5">
+            <h2>Users Page</h2>
+            <CardGroup>
+                <Row xs={1} md={2} className="d-flex justify-content-around">
+                    {users.length > 0 ? (
                         users.map((user) => (
                             <UserCard key={user._id} {...user} />
                         ))
                     ) : (
                         <p>No users available.</p>
                     )}
-            </Row>
-        </CardGroup>
-        {/* Pagination Component */}
-        {totalPages > 1 && (
-                <Pagination className="justify-content-center mt-4">
-                    {paginationItems}
+                </Row>
+            </CardGroup>
+            <div className="d-flex justify-content-center">
+                <Pagination>
+                    <Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+                    <Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+                    {currentPage > 1 && <Pagination.Item onClick={() => handlePageChange(currentPage - 1)}>{currentPage - 1}</Pagination.Item>}
+                    <Pagination.Item active>{currentPage}</Pagination.Item>
+                    {currentPage < totalPages && <Pagination.Item onClick={() => handlePageChange(currentPage + 1)}>{currentPage + 1}</Pagination.Item>}
+                    <Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
                 </Pagination>
-            )}
-    </div>
-  )
+            </div>
+        </div>
+    )
 }

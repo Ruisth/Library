@@ -37,32 +37,32 @@ export default function App() {
         getBooks(currentPage);
     }, [currentPage]);
 
-     // Handle pagination click
-     const handlePageChange = (pageNumber) => {
+    // Handle pagination click
+    const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber); // Atualiza a página atual
     };
 
-     // Criar os itens de paginação
-     const paginationItems = [];
-     for (let page = 1; page <= totalPages; page++) {
-         paginationItems.push(
-             <Pagination.Item
-                 key={page}
-                 active={page === currentPage}
-                 onClick={() => handlePageChange(page)}
-             >
-                 {page}
-             </Pagination.Item>
-         );
-     }
+    // Criar os itens de paginação
+    const paginationItems = [];
+    for (let page = 1; page <= totalPages; page++) {
+        paginationItems.push(
+            <Pagination.Item
+                key={page}
+                active={page === currentPage}
+                onClick={() => handlePageChange(page)}
+            >
+                {page}
+            </Pagination.Item>
+        );
+    }
 
 
     return (
         <div className="container pt-5 pb-5">
             <h2>Books</h2>
             <CardGroup>
-                <Row xs={1} md={2} className="d-flex justify-content-around">
-                {books.length > 0 ? (
+                <Row xs={1} md={2} className="d-flex justify-content-between">
+                    {books.length > 0 ? (
                         books.map((book) => (
                             <BookCard key={book._id} {...book} />
                         ))
@@ -71,13 +71,17 @@ export default function App() {
                     )}
                 </Row>
             </CardGroup>
-
-            {/* Pagination Component */}
-            {totalPages > 1 && (
-                <Pagination className="justify-content-center mt-4">
-                    {paginationItems}
+            <div className="d-flex justify-content-center">
+                <Pagination>
+                    <Pagination.First onClick={() => handlePageChange(1)} disabled={currentPage === 1} />
+                    <Pagination.Prev onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} />
+                    {currentPage > 1 && <Pagination.Item onClick={() => handlePageChange(currentPage - 1)}>{currentPage - 1}</Pagination.Item>}
+                    <Pagination.Item active>{currentPage}</Pagination.Item>
+                    {currentPage < totalPages && <Pagination.Item onClick={() => handlePageChange(currentPage + 1)}>{currentPage + 1}</Pagination.Item>}
+                    <Pagination.Next onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+                    <Pagination.Last onClick={() => handlePageChange(totalPages)} disabled={currentPage === totalPages} />
                 </Pagination>
-            )}
+            </div>
         </div>
     );
 }

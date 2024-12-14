@@ -134,9 +134,9 @@ export default function App() {
 
     return (
       <div>
-        {Array(fullStars).fill(<span style={{color: 'darkgoldenrod'}}>&#9733;</span>)} {/* Full stars */}
-        {halfStar && <span style={{color: 'darkgoldenrod'}}>&#9733;</span>} {/* Half star */}
-        {Array(emptyStars).fill(<span style={{color: 'darkgoldenrod'}}>&#9734;</span>)} {/* Empty stars */}
+        {Array(fullStars).fill(<span style={{ color: 'darkgoldenrod' }}>&#9733;</span>)} {/* Full stars */}
+        {halfStar && <span style={{ color: 'darkgoldenrod' }}>&#9733;</span>} {/* Half star */}
+        {Array(emptyStars).fill(<span style={{ color: 'darkgoldenrod' }}>&#9734;</span>)} {/* Empty stars */}
         <span> ({roundedScore})</span> {/* Rounded score */}
       </div>
     );
@@ -177,7 +177,7 @@ export default function App() {
               <p><strong>Authors:</strong> {book.authors ? book.authors.join(", ") : "N/A"}</p>
               <p><strong>Categories:</strong> {book.categories ? book.categories.join(", ") : "N/A"}</p>
               <p><strong>Description:</strong> {book.longDescription || "No description available."}</p>
-              <p style={{marginTop: '50px', color: 'darkgoldenrod' }}><strong>Comments:</strong></p>
+              <p style={{ marginTop: '50px', color: 'darkgoldenrod' }}><strong>Comments:</strong></p>
               <div style={{ maxHeight: '200px', overflowY: 'scroll' }}>
                 <table>
                   <tbody>
@@ -189,8 +189,8 @@ export default function App() {
                             <p style={{ marginBottom: '5px' }}>{comment.text || "No comment available"}</p>
 
                             {/* Nome do user e data */}
-                            <span style={{ fontSize: '0.9em', color: 'black'}}>
-                              {comment.user || "Anonymous"} -> {comment.date || "N/A"}
+                            <span style={{ fontSize: '0.9em', color: 'black' }}>
+                              {comment.user || "Anonymous"} --- {comment.date || "N/A"}
                             </span>
                           </div>
                         </td>

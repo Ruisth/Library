@@ -1,80 +1,175 @@
+/* Logo */
 .App-logo {
-    height: 40vmin;
-    pointer-events: none;
+  height: 40vmin;
+  pointer-events: none;
+}
+
+/* General container adjustments */
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* Ensure the header logo is animated if required */
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
   }
-  
-  .container {
-    max-width: 1200px;
+}
+
+/* Page Header Styles */
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+/* Logo Animation */
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
   }
-  
-  @media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-      animation: App-logo-spin infinite 20s linear;
-    }
+  to {
+    transform: rotate(360deg);
   }
-  
-  .App-header {
-    background-color: #282c34;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
-  }
-  
-  .App-link {
-    color: #61dafb;
-  }
-  
-  @keyframes App-logo-spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  
-  .navLogo {
-    height: 40px;
-  }
-  .nav-link {
-    color: #fff !important;
-  }
-  /* Header */
+}
+
+/* Navbar styling */
+.navLogo {
+  height: 40px;
+}
+
+.nav-link {
+  color: #fff !important;
+}
+
+/* Customizing Header/Masthead */
+header.masthead {
+  position: relative;
+  background-color: #f8f9fa;
+  padding-top: 8rem;
+  padding-bottom: 8rem;
+}
+
+header.masthead h2 {
+  color: #000;
+}
+
+header.masthead .overlay {
+  position: absolute;
+  background-color: #212529;
+  height: 100%;
+  width: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0.3;
+}
+
+/* Responsive Adjustment for larger screens */
+@media (min-width: 768px) {
   header.masthead {
-    position: relative;
-    background-color: #f8f9fa;
-    padding-top: 8rem;
-    padding-bottom: 8rem;
+    padding-top: 12rem;
+    padding-bottom: 12rem;
   }
-  
-  header.masthead h2 {
-    color: #000;
+  header.masthead h1 {
+    font-size: 3rem;
   }
-  header.masthead .overlay {
-    position: absolute;
-    background-color: #212529;
-    height: 100%;
-    width: 100%;
-    top: 0;
-    left: 0;
-    opacity: 0.3;
-  }
-  
-  @media (min-width: 768px) {
-    header.masthead {
-      padding-top: 12rem;
-      padding-bottom: 12rem;
-    }
-    header.masthead h1 {
-      font-size: 3rem;
-    }
-  }
-  /* Finish Header */
-  
-  .jumbotro {
-    background-color: #e9ecef;
-  }
+}
+
+/* Jumbotron (Light background for Book Listings) */
+.jumbotro {
+  background-color: #e9ecef;
+}
+
+/* Custom Styles for User Page */
+.user-info, .top-books {
+  background-color: #fff;
+  padding: 20px;
+  margin-top: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.user-info p {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 10px 0;
+}
+
+.user-info strong {
+  color: #2980b9;
+}
+
+.top-books ul {
+  padding-left: 0;
+}
+
+.top-books li {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 20px;
+}
+
+.book-thumbnail img {
+  width: 180px;
+  height: 270px;
+  object-fit: cover;
+}
+
+.book-thumbnail p {
+  font-size: 0.9rem;
+  color: #7f8c8d;
+}
+
+/* Buttons */
+.btn-primary {
+  background-color: #3498db;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #2980b9;
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  border: none;
+}
+
+.btn-danger:hover {
+  background-color: #c0392b;
+}
+
+.btn {
+  font-weight: bold;
+  padding: 10px 20px;
+  font-size: 1rem;
+}
+
+/* Spacing Utilities */
+.mt-4 {
+  margin-top: 30px;
+}
+
+.ms-2 {
+  margin-left: 10px;
+}
+
+/* Error Message Styling */
+.text-danger {
+  color: #e74c3c;
+}
+
+.text-center {
+  text-align: center;
+}

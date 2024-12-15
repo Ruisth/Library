@@ -128,13 +128,17 @@ router.get("/:id", async (req, res) => {
                 });
             }
 
-            // Ordena todas as avaliações pelo score em ordem decrescente e pega as 3 melhores
-            const topReviews = user.reviews
-                .sort((a, b) => b.score - a.score)  // Ordena pela pontuação (score) em ordem decrescente
-                .slice(0, 3);  // Pega as 3 melhores avaliações
+            // Ordena todas as avaliações pelo score em ordem decrescente
+            const sortedReviews = user.reviews.sort((a, b) => b.score - a.score);
 
-            // Extrai os IDs dos livros das top 3 reviews
-            const topBookIds = topReviews.map(review => review.book_id);
+            // Remove duplicatas por `book_id`, mantendo apenas a primeira ocorrência
+            const uniqueReviews = sortedReviews.filter(
+                (review, index, self) =>
+                    self.findIndex(r => r.book_id === review.book_id) === index
+            );
+
+            // Pega os IDs dos 3 melhores livros (após remover duplicatas)
+            const topBookIds = uniqueReviews.slice(0, 3).map(review => review.book_id);
 
             // Busca os detalhes dos livros na coleção "books"
             const topBooks = await db.collection('books').find({ _id: { $in: topBookIds } }).toArray();
@@ -143,9 +147,11 @@ router.get("/:id", async (req, res) => {
             const validTopBooks = topBooks
                 .filter(book => topBookIds.includes(book._id))
                 .map(book => { 
-                    const review = topReviews.find(r => r.book_id === book._id);
+                    const review = uniqueReviews.find(r => r.book_id === book._id);
                     return { ...book, score: review?.score || 0 };
-            });
+                });
+
+            // Ordena os livros novamente pelo score em ordem decrescente (caso necessário)
             const sortedTopBooks = validTopBooks.sort((a, b) => b.score - a.score);
 
             // Verifica se algum livro está ausente

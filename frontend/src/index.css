@@ -1,0 +1,59 @@
+/* Global Body Settings */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f4f9;
+}
+
+/* Ensure the code styles don't affect the app text */
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+/* Global heading styles */
+h1, h2, h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h3 {
+  font-size: 1.6rem;
+}
+
+/* Paragraph and general text adjustments */
+p {
+  color: #555;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+/* A clearer visual focus for link elements */
+.App-link {
+  color: #3498db;
+}
+
+.App-link:hover {
+  color: #2980b9;
+}
+
+/* Utility Classes */
+.mt-4 {
+  margin-top: 2rem;
+}
+
+.ms-2 {
+  margin-left: 1rem;
+}
+
+.text-center {
+  text-align: center;
+}

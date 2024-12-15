@@ -60,26 +60,27 @@ router.post("/", async (req, res) => {
             const { title, isbn, pageCount, publishedDate, thumbnailUrl, shortDescription, longDescription, status, authors, categories } = book;
 
             return {
-            _id: nextId++,
-            title,
-            isbn,
-            pageCount,
-            publishedDate,
-            thumbnailUrl,
-            shortDescription,
-            longDescription,
-            status,
-            authors,
-            categories
+                _id: nextId++,
+                title,
+                isbn,
+                pageCount,
+                publishedDate,
+                thumbnailUrl,
+                shortDescription,
+                longDescription,
+                status,
+                authors,
+                categories
             };
         });
 
         const result = await db.collection('books').insertMany(newBooks);
 
-        res.status(201).send({ 
-            message: 'Livro/os inserido com sucesso.', 
-            insertedCount: result.insertedCount, 
-            insertedIds: result.insertedIds });
+        res.status(201).send({
+            message: 'Livro/os inserido com sucesso.',
+            insertedCount: result.insertedCount,
+            insertedIds: result.insertedIds
+        });
     } catch (error) {
         res.status(500).json({ error: 'Erro ao inserir o livro.' });
     }
@@ -466,6 +467,79 @@ router.get("/comments", async (req, res) => {
 });
 
 
+// Obter comentários de um livro específico
+router.get("/comments/:id", async (req, res) => {
+    const bookId = parseInt(req.params.id);
+
+    if (isNaN(bookId)) {
+        return res.status(400).json({ error: 'ID inválido: ' + bookId });
+    }
+
+    try {
+        const results = await db.collection('books').aggregate([
+            { $match: { _id: bookId } }, // Filtra o livro pelo ID
+            {
+                $lookup: {
+                    from: 'comments', // Coleção comments
+                    localField: '_id', // Campo na coleção books que indica o ID do livro
+                    foreignField: 'book_id', // Campo na coleção comments que indica o ID do livro
+                    as: 'book_comments' // Nome do resultado
+                }
+            },
+            { $unwind: { path: '$book_comments', preserveNullAndEmptyArrays: true } }, // Expande o array de comentários            
+            {
+                $lookup: {
+                    from: 'users', // Coleção users
+                    localField: 'book_comments.user_id', // Campo de user_id no comentário
+                    foreignField: '_id', // Campo _id na coleção users
+                    as: 'user_info' // Nome do resultado
+                }
+            },
+            { $unwind: { path: '$user_info', preserveNullAndEmptyArrays: true } }, // Expande os dados do usuário
+            {
+                $addFields: {
+                    'book_comments.date': { 
+                        $dateToString: {
+                            format: '%d-%m-%Y', // Formato da data
+                            date: { $toDate: { $toLong: '$book_comments.date' }} // Converte a data para ISO
+                        }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    title: { $first: '$title' }, // O título do livro
+                    comments: {
+                        $push: {
+                            text: '$book_comments.comment',
+                            date: '$book_comments.date',
+                            user: {
+                                $concat: ['$user_info.first_name', ' ', '$user_info.last_name']
+                            } // Concatena o nome e o sobrenome do usuário
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    title: 1,
+                    comments: { $ifNull: ['$comments', []] } // Garante que comentários vazios sejam tratados
+                }
+            }
+        ]).toArray();
+
+        if (results.length > 0) {
+            res.status(200).json(results[0]); // Retorna o primeiro livro encontrado
+        } else {
+            res.status(404).json({ error: 'Livro não encontrado' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Erro ao buscar os comentários do livro.' });
+    }
+});
+
+
 // get books by job
 /*Número total de reviews por “job”
 Resultado deverá apresentar apenas o “job” e número
@@ -526,5 +600,41 @@ router.get("/filter", async (req, res) => {
     }
 });
 
+/*obter o average score do livro*/
+router.get("/averageScore/:id", async (req, res) => {
+    const bookId = parseInt(req.params.id);
+
+    try {
+        const result = await db.collection('books').aggregate([
+            {
+                $lookup: {
+                    from: 'users',
+                    localField: '_id',
+                    foreignField: 'reviews.book_id',
+                    as: 'user_reviews'
+                }
+            },
+            { $unwind: '$user_reviews' },
+            { $unwind: '$user_reviews.reviews' },
+            { $match: { $expr: { $eq: ['$user_reviews.reviews.book_id', '$_id'] } } },
+            { $match: { _id: bookId } }, // Filtra pelo ID do livro
+            {
+                $group: {
+                    _id: '$_id',
+                    averageScore: { $avg: '$user_reviews.reviews.score' },
+                    totalReviews: { $sum: 1 }
+                }
+            }
+        ]).toArray();
+
+        if (result.length > 0) {
+            res.status(200).json(result[0]);
+        } else {
+            res.status(404).json({ error: 'Book not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 export default router;
